@@ -44,8 +44,8 @@ int main(void) {
 
     // rendering loop
     while (window_startNewFrame(ctx)) {
-    
-        getInputData()->deltaTime = (float) window_getDeltaTime(ctx);
+        
+        getInputData()->deltaTime = getInputData()->paused ? 0.0f : (float) window_getDeltaTime(ctx);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

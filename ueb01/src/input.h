@@ -16,7 +16,7 @@ typedef struct {
     bool showHelp;
     bool showMenu;
     float deltaTime;
-
+    bool paused;
     struct {
         int button;
         int action;

@@ -202,6 +202,9 @@ static void drawStars(InputData *data) {
 
         float angleOffset = (float) i * 10.3f;
         float rotationAngle = (float) glfwGetTime() * STAR_ROTATION_SPEED + angleOffset;
+        if (data->paused) {
+            rotationAngle = 0;
+        }
 
         // star
         scene_pushMatrix();

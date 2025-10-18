@@ -46,6 +46,10 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             shader_load();
             break;
 
+        case GLFW_KEY_P:
+            data->paused = !data->paused;
+            break;
+
         case GLFW_KEY_1:
         case GLFW_KEY_2:
         case GLFW_KEY_3:
@@ -92,6 +96,7 @@ void input_init(ProgContext ctx) {
     input.showHelp = false;
     input.showMenu = true;
     input.showWireframe = false;
+    input.paused = false;
     input.mouse.button = GLFW_KEY_UNKNOWN;
     input.mouse.xPos = 0;
     input.mouse.yPos = 0;

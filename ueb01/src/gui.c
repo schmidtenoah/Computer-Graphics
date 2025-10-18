@@ -51,27 +51,27 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
         NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
     {
-        if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MAXIMIZED))
-        {
-            gui_layoutRowDynamic(ctx, 30, 2);
+        if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MAXIMIZED)){
+            gui_layoutRowDynamic(ctx, 20, 2);
 
-            if (gui_button(ctx, "Help"))
-            {
+            if (gui_button(ctx, "Help")) {
                 input->showHelp = !input->showHelp;
             }
 
-            if (gui_button(ctx, 
-                input->isFullscreen ? "Window" : "Fullscreen"))
-            {
+            if (gui_button(ctx, input->isFullscreen ? "Window" : "Fullscreen")){
                 input->isFullscreen = !input->isFullscreen;
                 window_setFullscreen(ctx, input->isFullscreen);
+            }
+
+            gui_layoutRowDynamic(ctx, 20, 1);
+            if (gui_button(ctx, input->paused ? "unpause" : "pause")) {
+                input->paused = !input->paused;
             }
 
             gui_treePop(ctx);
         }
 
-        if (gui_treePush(ctx, NK_TREE_TAB, "Visual", NK_MINIMIZED))
-        {
+        if (gui_treePush(ctx, NK_TREE_TAB, "Visual", NK_MINIMIZED)) {
             // Wireframe
             gui_layoutRowDynamic(ctx, 25, 1);
             gui_checkbox(ctx, "Wireframe", &input->showWireframe);
@@ -79,8 +79,7 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
             gui_treePop(ctx);
         }
 
-        if (gui_treePush(ctx, NK_TREE_TAB, "Curve", NK_MINIMIZED))
-        {
+        if (gui_treePush(ctx, NK_TREE_TAB, "Curve", NK_MINIMIZED)) {
             gui_layoutRowDynamic(ctx, 25, 1);
             if (!input->game.isFlying) {
                 if (gui_checkbox(ctx, "Spline", &showSpline)) {
@@ -106,8 +105,7 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
             gui_treePop(ctx);
         }
 
-        if (gui_treePush(ctx, NK_TREE_TAB, "Game", NK_MINIMIZED))
-        {
+        if (gui_treePush(ctx, NK_TREE_TAB, "Game", NK_MINIMIZED)) {
             gui_layoutRowDynamic(ctx, 25, 1);
             char infoStr[10];
             snprintf(infoStr, 9, "Level: %d", input->game.currentLevel + 1);
