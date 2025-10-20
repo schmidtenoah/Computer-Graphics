@@ -84,8 +84,9 @@ static void setLevelData(InputData *data, Level *level) {
 
     data->curve.buttonCount = level->buttonCount;
     if (level->buttonCount != 4) {
-        data->curve.curveEval = utils_bSplineUniformGlobal;
+        data->curve.curveEval = utils_evalSpline;
     }
+    data->curve.buttonsChanged = true;
 }
 
 static void loadNextLevel(InputData *data) {
@@ -150,7 +151,7 @@ static void airplaneUpdate(InputData *data, vec2 *ctrl, int n) {
 
     // position on spline
     vec2 P;
-    data->curve.curveEval(ctrl, n, curveT, P);
+    data->curve.curveEval(ctrl, n, curveT, P, false);
 
     // rotation (tip points along tangent)
     float angle = atan2f(T[1], T[0]) + (float)M_PI_2;

@@ -8,7 +8,7 @@
 #include <fhwcg/fhwcg.h>
 #define MAX_STARS 40
 
-typedef void (*CurveEvalFn)(vec2* ctrl, int numPoints, float t, vec2 dest);
+typedef void (*CurveEvalFn)(vec2* ctrl, int numPoints, float t, vec2 dest, bool *updateCoeffs);
 
 typedef struct {
     bool isFullscreen;
@@ -31,6 +31,8 @@ typedef struct {
         bool drawConvexHull;
         bool showNormals;
         int buttonCount;
+        bool resolutionChanged;
+        bool buttonsChanged;
     } curve;
 
     struct {

@@ -37,6 +37,12 @@ static bool buttonInitilized = false;
 static Circle *buttons[BUTTON_COUNT];
 static Circle buttonStorage[BUTTON_COUNT];
 
+static struct {
+    vec2 vertices[CURVE_MAX_VERTICES];
+    vec3 normalVertices[CURVE_MAX_VERTICES];
+    int numVertices;
+} curve;
+
 static void checkAndDrawButtons(InputData *data) {
     bool foundSelected = false;
 
@@ -77,6 +83,8 @@ static void checkAndDrawButtons(InputData *data) {
             float d = BUTTON_DRAG_EDGE_DISTANCE;
             btn->center[0] = glm_clamp(sceneX, rd.left + d, rd.right - d);
             btn->center[1] = glm_clamp(sceneY, rd.bottom + d, rd.top - d);
+
+            data->curve.buttonsChanged = true;
         }
 
         if (!foundSelected && isInside) {
@@ -111,25 +119,27 @@ static void drawControlPolygon(vec2 *ctrl, int n) {
     scene_popMatrix();
 }
 
-static void drawCurve(CurveEvalFn curveFn, vec2 *ctrl, float step, float width, int n) {
+static void drawCurve(InputData *data, vec2 *ctrl, float step, float width, int n) {
     scene_pushMatrix();
 
-    vec2 vertices[CURVE_MAX_VERTICES];
-    int numVertices = 0;
-    for (float T = 0.0f; T <= 1.0f && numVertices < CURVE_MAX_VERTICES; T += step) {
-        curveFn(ctrl, n, T, vertices[numVertices]);
-        numVertices++;
+    if (data->curve.resolutionChanged || data->curve.buttonsChanged) {
+        curve.numVertices = 0;
+        for (float T = 0.0f; T <= 1.0f && curve.numVertices < CURVE_MAX_VERTICES; T += step) {
+            data->curve.curveEval(ctrl, n, T, curve.vertices[curve.numVertices], &data->curve.buttonsChanged);
+            curve.numVertices++;
+        }
+
+        // always interpolate last step
+        data->curve.curveEval(ctrl, n, 1.0f, curve.vertices[curve.numVertices - 1], &data->curve.buttonsChanged);
+
+        utils_calcNormals(curve.vertices, curve.normalVertices, curve.numVertices);
+
+        data->curve.resolutionChanged = false;
     }
 
-    // always interpolate last step
-    curveFn(ctrl, n, 1.0f, vertices[numVertices - 1]);
-
-    vec3 normalVertices[CURVE_MAX_VERTICES];
-    utils_calcNormals(vertices, normalVertices, numVertices);
-
-    model_updateCurve(vertices, normalVertices, numVertices);
+    model_updateCurve(curve.vertices, curve.normalVertices, curve.numVertices);
     shader_setColor(VEC3(1, 0, 0));
-    model_drawCurve(numVertices, width);
+    model_drawCurve(curve.numVertices, width);
 
     scene_popMatrix();
 }
@@ -254,6 +264,23 @@ static void drawAirplane(InputData *data) {
     }
 }
 
+static void initCurve(void) {
+    InputData *input = getInputData();
+    int btnCnt = input->curve.buttonCount;
+    vec2 ctrl[BUTTON_COUNT];
+    for (int k = 0; k < btnCnt; ++k) {
+        ctrl[k][0] = buttons[k]->center[0];
+        ctrl[k][1] = buttons[k]->center[1];
+    }
+
+    for (float T = 0.0f; T <= 1.0f && curve.numVertices < CURVE_MAX_VERTICES; T += input->curve.resolution) {
+        input->curve.curveEval(ctrl, btnCnt, T, curve.vertices[curve.numVertices], &input->curve.buttonsChanged);
+        curve.numVertices++;
+    }
+
+    input->curve.curveEval(ctrl, btnCnt, 1.0f, curve.vertices[curve.numVertices - 1], &input->curve.buttonsChanged);
+    utils_calcNormals(curve.vertices, curve.normalVertices, curve.numVertices);
+}
 
 // PUBLIC
 
@@ -287,6 +314,7 @@ void rendering_init(void) {
     glFrontFace(GL_CCW);
     glDisable(GL_DEPTH_TEST);
 
+    initCurve();
     shader_load();
 }
 
@@ -321,7 +349,7 @@ void rendering_draw(void) {
         drawConvexHull(btnCnt);
     }
 
-    drawCurve(input->curve.curveEval, ctrl, input->curve.resolution, input->curve.width, btnCnt);
+    drawCurve(input, ctrl, input->curve.resolution, input->curve.width, btnCnt);
     logic_update(input, ctrl, btnCnt);
 
     drawClouds(input);

@@ -18,7 +18,12 @@ static const GuiHelpLine help[] = {
     {"Toggle Wireframe", "F3"},
     {"Toggle Menu", "F4"},
     {"Reload Shaders", "R"}, 
-    {"Level Selection", "Num-Keys"}
+    {"Level Selection", "Num-Keys"},
+    {"Pause", "P"},
+    {"Start", "S"},
+    {"Toggle Curve", "B"},
+    {"Normals", "N"},
+    {"Convex Hull", "C"}
 };
 
 static void gui_renderHelp(ProgContext ctx, InputData* input) {
@@ -84,14 +89,16 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
             if (!input->game.isFlying) {
                 if (gui_checkbox(ctx, "Spline", &showSpline)) {
                     showBezier = !showSpline;
-                    input->curve.curveEval = showSpline ? utils_bSplineUniformGlobal : utils_bezier;
+                    input->curve.curveEval = showSpline ? utils_evalSpline : utils_evalBezier;
                 }
                 if (gui_checkbox(ctx, "Bezier", &showBezier)) {
                     if (input->curve.buttonCount != 4) {
                         showBezier = !showBezier;
                     } else {
                         showSpline = !showBezier;
-                        input->curve.curveEval = showSpline ? utils_bSplineUniformGlobal : utils_bezier;
+                        input->curve.curveEval = showSpline ? utils_evalSpline : utils_evalBezier;
+                        input->curve.buttonsChanged = true;
+                        input->curve.resolutionChanged = true;
                     }
                 }
             }
@@ -100,7 +107,13 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
             gui_checkbox(ctx, "Normals", &input->curve.showNormals);
 
             gui_propertyFloat(ctx, "width", 0.01f, &input->curve.width, 20.0f, 0.001f, 0.5f);
-            gui_propertyFloat(ctx, "resolution", 0.0002f, &input->curve.resolution, 0.99f, 0.001f, 0.005f);
+
+            float newRes = input->curve.resolution;
+            gui_propertyFloat(ctx, "resolution", 0.0002f, &newRes, 0.99f, 0.001f, 0.005f);
+            if (!glm_eq(newRes, input->curve.resolution)) {
+                input->curve.resolution = newRes;
+                input->curve.resolutionChanged = true;
+            }
 
             gui_treePop(ctx);
         }

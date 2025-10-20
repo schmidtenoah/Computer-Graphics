@@ -9,11 +9,9 @@
 
 int utils_convexHullVec2(vec2* points, vec2* hull, int n);
 
-void utils_bezier(vec2* ctrl, int numPoints, float t, vec2 dest);
+void utils_evalBezier(vec2 *ctrl, int numPoints, float T, vec2 dest, bool *updateCoeffs);
 
-void utils_bSplineUniform(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t, vec2 dest);
-
-void utils_bSplineUniformGlobal(vec2* ctrl, int numPoints, float T, vec2 dest);
+void utils_evalSpline(vec2 *ctrl, int numPoints, float T, vec2 dest, bool *updateCoeffs);
 
 void utils_getTangent(CurveEvalFn curveFn, vec2 *ctrl, int n, float t, vec2 tangent);
 

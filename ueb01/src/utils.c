@@ -2,16 +2,25 @@
 #include "rendering.h"
 #include "input.h"
 
+#define MAX_SEGMENTS (BUTTON_COUNT - 3)
+
+typedef struct {
+    vec4 coeffsX;
+    vec4 coeffsY;
+} Segment;
+
 // LOCAL
 
-static const float uniformBSplineMatrix[4][4] = {
+static Segment segments[MAX_SEGMENTS];
+
+static const mat4 splineMatrix = {
         { -1,  3, -3,  1 },
         {  3, -6,  3,  0 },
         { -3,  0,  3,  0 },
         {  1,  4,  1,  0 }
 };
 
-static const float bezierMatrix[4][4] = {
+static const mat4 bezierMatrix = {
         { -1,  3, -3,  1 },
         {  3, -6,  3,  0 },
         { -3,  3,  0,  0 },
@@ -37,78 +46,93 @@ static float angleBetweenVec2(vec2 from, vec2 to) {
     return angle;
 }
 
+static void updateSplineCoefficients(vec2 *ctrl, int numPoints) {
+    int numSegments = numPoints - 3;
+
+    for (int i = 0; i < numSegments; ++i) {
+        float Gx[4] = { ctrl[i][0], ctrl[i+1][0], ctrl[i+2][0], ctrl[i+3][0] };
+        float Gy[4] = { ctrl[i][1], ctrl[i+1][1], ctrl[i+2][1], ctrl[i+3][1] };
+
+        vec4 Cx = GLM_VEC4_ZERO_INIT;
+        vec4 Cy = GLM_VEC4_ZERO_INIT;
+
+        for (int row = 0; row < 4; ++row) {
+            for (int col = 0; col < 4; ++col) {
+                Cx[row] += splineMatrix[row][col] * Gx[col];
+                Cy[row] += splineMatrix[row][col] * Gy[col];
+            }
+            Cx[row] /= 6.0f;
+            Cy[row] /= 6.0f;
+        }
+
+        glm_vec4_copy(Cx, segments[i].coeffsX);
+        glm_vec4_copy(Cy, segments[i].coeffsY);
+    }
+}
+
+static void updateBezierCoefficients(vec2 *ctrl, int numPoints) {
+    int numSegments = numPoints - 3;
+
+    for (int i = 0; i < numSegments; ++i) {
+        float Gx[4] = { ctrl[i][0], ctrl[i+1][0], ctrl[i+2][0], ctrl[i+3][0] };
+        float Gy[4] = { ctrl[i][1], ctrl[i+1][1], ctrl[i+2][1], ctrl[i+3][1] };
+
+        float Cx[4] = {0}, Cy[4] = {0};
+
+        for (int row = 0; row < 4; ++row) {
+            for (int col = 0; col < 4; ++col) {
+                Cx[row] += bezierMatrix[row][col] * Gx[col];
+                Cy[row] += bezierMatrix[row][col] * Gy[col];
+            }
+        }
+
+        glm_vec4_copy(Cx, segments[i].coeffsX);
+        glm_vec4_copy(Cy, segments[i].coeffsY);
+    }
+}
+
 // PUBLIC
 
-void utils_bSplineUniform(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t, vec2 dest) {
-    float T[4] = { t*t*t, t*t, t, 1 };
-
-    float Gx[4] = { p0[0], p1[0], p2[0], p3[0] };
-    float Gy[4] = { p0[1], p1[1], p2[1], p3[1] };
-
-    // Compute T * M
-    float TM[4];
-    for (int j = 0; j < 4; ++j) {
-        TM[j] = (T[0] * uniformBSplineMatrix[0][j] +
-                 T[1] * uniformBSplineMatrix[1][j] +
-                 T[2] * uniformBSplineMatrix[2][j] +
-                 T[3] * uniformBSplineMatrix[3][j]) / 6.0f;
+void utils_evalSpline(vec2 *ctrl, int numPoints, float T, vec2 dest, bool *updateCoeffs) {
+    if (updateCoeffs != NULL && *updateCoeffs) {
+        updateSplineCoefficients(ctrl, numPoints);
+        *updateCoeffs = false;
     }
 
-    // Multiply by control points G
-    float x = TM[0]*Gx[0] + TM[1]*Gx[1] + TM[2]*Gx[2] + TM[3]*Gx[3];
-    float y = TM[0]*Gy[0] + TM[1]*Gy[1] + TM[2]*Gy[2] + TM[3]*Gy[3];
+    int numSegments = numPoints - 3;
+    T = glm_clamp(T, 0.0f, 1.0f);
+
+    float segmentPos = T * numSegments;
+    int i = (int) floorf(segmentPos);
+    if (i >= numSegments) i = numSegments - 1;
+    float t = segmentPos - i;
+
+    Segment *s = &segments[i];
+
+    // p(t)=((at+b)t+c)t+d == p(t)=at3+bt2+ct+d
+    float x = ((s->coeffsX[0] * t + s->coeffsX[1]) * t + s->coeffsX[2]) * t + s->coeffsX[3];
+    float y = ((s->coeffsY[0] * t + s->coeffsY[1]) * t + s->coeffsY[2]) * t + s->coeffsY[3];
 
     dest[0] = x;
     dest[1] = y;
 }
 
-void utils_bSplineUniformGlobal(vec2* ctrl, int numPoints, float T, vec2 dest) {
-    if (numPoints < 4) {
-        return;
-    }
-
-    int numSegments = numPoints - 3;
-    if (numSegments <= 0) {
-        dest[0] = 0;
-        dest[1] = 0;
-        return;
-    }
-
-    // Clamp T to [0, 1]
-    if (T < 0.0f) T = 0.0f;
-    if (T > 1.0f) T = 1.0f;
-
-    // Compute segment index and local t
-    float segmentPos = T * numSegments;
-    int i = (int)floorf(segmentPos);
-    if (i >= numSegments) i = numSegments - 1; // clamp to last
-    float t = segmentPos - i; // fractional part
-
-    utils_bSplineUniform(ctrl[i], ctrl[i+1], ctrl[i+2], ctrl[i+3], t, dest);
-}
-
-void utils_bezier(vec2* ctrl, int numPoints, float t, vec2 dest) {
+void utils_evalBezier(vec2 *ctrl, int numPoints, float T, vec2 dest, bool *updateCoeffs) {
     if (numPoints != 4) {
         return;
     }
 
-    float T[4] = { t*t*t, t*t, t, 1 };
-
-    float Gx[4] = { ctrl[0][0], ctrl[1][0], ctrl[2][0], ctrl[3][0] };
-    float Gy[4] = { ctrl[0][1], ctrl[1][1], ctrl[2][1], ctrl[3][1] };
-
-    // Compute T * M
-    float TM[4];
-    for (int j = 0; j < 4; ++j) {
-        TM[j] = (T[0] * bezierMatrix[0][j] +
-                 T[1] * bezierMatrix[1][j] +
-                 T[2] * bezierMatrix[2][j] +
-                 T[3] * bezierMatrix[3][j]);
+    if (updateCoeffs != NULL && *updateCoeffs) {
+        updateBezierCoefficients(ctrl, numPoints);
+        *updateCoeffs = false;
     }
 
-    // Multiply by control points G
-    float x = TM[0]*Gx[0] + TM[1]*Gx[1] + TM[2]*Gx[2] + TM[3]*Gx[3];
-    float y = TM[0]*Gy[0] + TM[1]*Gy[1] + TM[2]*Gy[2] + TM[3]*Gy[3];
+    Segment *s = &segments[0];
+    float t = glm_clamp(T, 0.0f, 1.0f);
+
+    // p(t)=((at+b)t+c)t+d == p(t)=at3+bt2+ct+d
+    float x = ((s->coeffsX[0] * t + s->coeffsX[1]) * t + s->coeffsX[2]) * t + s->coeffsX[3];
+    float y = ((s->coeffsY[0] * t + s->coeffsY[1]) * t + s->coeffsY[2]) * t + s->coeffsY[3];
 
     dest[0] = x;
     dest[1] = y;
@@ -163,8 +187,8 @@ void utils_getTangent(CurveEvalFn curveFn, vec2 *ctrl, int n, float t, vec2 tang
     float eps = 0.001f; // small offset for numerical derivative
     vec2 p1, p2;
 
-    curveFn(ctrl, n, t, p1);
-    curveFn(ctrl, n, t + eps, p2);
+    curveFn(ctrl, n, t, p1, NULL);
+    curveFn(ctrl, n, t + eps, p2, NULL);
 
     glm_vec2_sub(p2, p1, tangent);
     glm_vec2_normalize(tangent);

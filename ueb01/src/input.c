@@ -50,6 +50,26 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             data->paused = !data->paused;
             break;
 
+        case GLFW_KEY_S:
+            data->game.isFlying = true;
+            break;
+
+        case GLFW_KEY_B:
+            if (data->curve.buttonCount == 4 && !data->game.isFlying) {
+                data->curve.curveEval = (data->curve.curveEval == utils_evalSpline) ? utils_evalBezier : utils_evalSpline;
+                data->curve.resolutionChanged = true;
+                data->curve.buttonsChanged = true;
+            }
+            break;
+
+        case GLFW_KEY_N:
+            data->curve.showNormals = !data->curve.showNormals;
+            break;
+
+        case GLFW_KEY_C:
+            data->curve.drawConvexHull = !data->curve.drawConvexHull;
+            break;
+
         case GLFW_KEY_1:
         case GLFW_KEY_2:
         case GLFW_KEY_3:
@@ -107,7 +127,9 @@ void input_init(ProgContext ctx) {
     input.game.isFlying = false;
     input.game.showColliders = false;
     input.curve.showNormals = false;
-    input.curve.curveEval = utils_bSplineUniformGlobal;
+    input.curve.curveEval = utils_evalSpline;
+    input.curve.buttonsChanged = true;
+    input.curve.resolutionChanged = true;
 }
 
 InputData* getInputData(void) {
