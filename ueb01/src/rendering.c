@@ -68,9 +68,23 @@ static void checkAndDrawButtons(InputData *data) {
 
         if (data->mouse.action == GLFW_PRESS && isInside && !draggedButton) {
             draggedButton = btn;
+            foundSelected = true;
         }
         if (data->mouse.action == GLFW_RELEASE && draggedButton == btn) {
             draggedButton = NULL;
+        }
+
+        if (!foundSelected && isInside) {
+            foundSelected = true;
+            if (data->mouse.button == GLFW_MOUSE_BUTTON_LEFT && data->mouse.action == GLFW_PRESS && draggedButton == btn) {
+                shader_setColor(BUTTON_SELECTED_COLOR);
+            } else if (draggedButton == NULL) {
+                shader_setColor(BUTTON_HOVER_COLOR);
+            } else {
+                shader_setColor(BUTTON_NORMAL_COLOR);
+            }
+        } else {
+            shader_setColor(BUTTON_NORMAL_COLOR);
         }
 
         // update drag position
@@ -85,17 +99,7 @@ static void checkAndDrawButtons(InputData *data) {
             btn->center[1] = glm_clamp(sceneY, rd.bottom + d, rd.top - d);
 
             data->curve.buttonsChanged = true;
-        }
-
-        if (!foundSelected && isInside) {
-            foundSelected = true;
-            if (data->mouse.button == GLFW_MOUSE_BUTTON_LEFT && data->mouse.action == GLFW_PRESS) {
-                shader_setColor(BUTTON_SELECTED_COLOR);
-            } else {
-                shader_setColor(BUTTON_HOVER_COLOR);
-            }
-        } else {
-            shader_setColor(BUTTON_NORMAL_COLOR);
+            shader_setColor(BUTTON_SELECTED_COLOR);
         }
 
         scene_translate(btn->center[0], btn->center[1], 0);
