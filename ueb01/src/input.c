@@ -70,6 +70,19 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             data->curve.drawConvexHull = !data->curve.drawConvexHull;
             break;
 
+        case GLFW_KEY_KP_ADD:
+             data->curve.resolution -= 0.1f;
+             data->curve.resolution = glm_clamp(data->curve.resolution, 0.0002f, 0.99f);
+             data->curve.resolutionChanged = true;
+             break;
+
+        case GLFW_KEY_KP_SUBTRACT:
+         case GLFW_KEY_MINUS:
+             data->curve.resolution += 0.1f;
+             data->curve.resolution = glm_clamp(data->curve.resolution, 0.0002f, 0.99f);
+             data->curve.resolutionChanged = true;
+             break;
+
         case GLFW_KEY_1:
         case GLFW_KEY_2:
         case GLFW_KEY_3:

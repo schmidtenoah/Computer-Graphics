@@ -4,7 +4,7 @@
 #include "shader.h"
 #include "utils.h"
 
-#define AIRPLANE_START_T 0.9999f
+#define AIRPLANE_START_T 0.0001f
 #define AIRPLANE_COLLIDER_RADIUS 0.03f
 #define AIRPLANE_DEFAULT_SPEED 0.2f
 #define CLOUD_COLLISION_RADIUS 0.08f
@@ -60,7 +60,7 @@ static vec2 cloudsLevel6[] = { {-0.1f, 0.1f} };
 static Level levels[LEVEL_COUNT] = {
     { starsLevel1, 1, STAR_COLLISION_RADIUS, cloudsLevel1, 0, CLOUD_COLLISION_RADIUS, 4 },
     { starsLevel2, 3, STAR_COLLISION_RADIUS, cloudsLevel2, 1, CLOUD_COLLISION_RADIUS, 5 },
-    { starsLevel3, 2, STAR_COLLISION_RADIUS * 1.7f, cloudsLevel3, 2, CLOUD_COLLISION_RADIUS * 4.5f, 6 },
+    { starsLevel3, 2, STAR_COLLISION_RADIUS * 1.7f, cloudsLevel3, 2, CLOUD_COLLISION_RADIUS * 2.5f, 6 },
     { starsLevel4, 4, STAR_COLLISION_RADIUS, cloudsLevel4, 3, CLOUD_COLLISION_RADIUS, 8 },
     { starsLevel5, 5, STAR_COLLISION_RADIUS, cloudsLevel5, 4, CLOUD_COLLISION_RADIUS, 10 },
     { starsLevel6, 40, STAR_COLLISION_RADIUS, cloudsLevel6, 1, CLOUD_COLLISION_RADIUS, 20 } 
@@ -137,10 +137,10 @@ static void airplaneUpdate(InputData *data, vec2 *ctrl, int n) {
     // slope-dependent speed
     if (data->game.isFlying) {
         float slopeInfluence = 1.3f;
-        float slopeFactor = 1.0f + slopeInfluence * (T[1]); 
+        float slopeFactor = 1.0f - slopeInfluence * T[1];
         slopeFactor = glm_clamp(slopeFactor, 0.5f, 5.0f);
-        curveT -= data->deltaTime * data->game.airplane.defaultSpeed * slopeFactor;
-        if (curveT <= 0.0f) {
+        curveT += data->deltaTime * data->game.airplane.defaultSpeed * slopeFactor;
+        if (curveT >= 1.0f) {
             curveT = AIRPLANE_START_T;
             data->game.isFlying = false;
             checkWin(data);
@@ -154,11 +154,11 @@ static void airplaneUpdate(InputData *data, vec2 *ctrl, int n) {
     data->curve.curveEval(ctrl, n, curveT, P, false);
 
     // rotation (tip points along tangent)
-    float angle = atan2f(T[1], T[0]) + (float)M_PI_2;
+    float angle = atan2f(T[1], T[0]) - (float)M_PI_2;
 
     vec2 offsetDir = { -T[1], T[0] };
     float offset = 0.05f;
-    vec2 Poffset = { P[0] - offsetDir[0]*offset, P[1] - offsetDir[1]*offset };
+    vec2 Poffset = { P[0] + offsetDir[0]*offset, P[1] + offsetDir[1]*offset };
 
     data->game.airplane.position[0] = Poffset[0];
     data->game.airplane.position[1] = Poffset[1];

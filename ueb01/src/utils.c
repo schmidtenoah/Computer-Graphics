@@ -94,6 +94,7 @@ static void updateBezierCoefficients(vec2 *ctrl, int numPoints) {
 // PUBLIC
 
 void utils_evalSpline(vec2 *ctrl, int numPoints, float T, vec2 dest, bool *updateCoeffs) {
+    // TODO: Sollte gecached werden? Etwa coefficientsValid && lastNumPoints == numPoints
     if (updateCoeffs != NULL && *updateCoeffs) {
         updateSplineCoefficients(ctrl, numPoints);
         *updateCoeffs = false;
@@ -220,7 +221,7 @@ void utils_calcNormals(vec2 *vertices, vec3 *normalDest, int n) {
     for (int i = 0; i < n; ++i) {
     vec3 diff, normal;
 
-        int left = (i == 0) ? 0 : i - 1;
+        int left = (i == 0) ? 0 : i - 1; //TODO: bedeutet das nicht, dass bei Rand i=0 diff = 0 ist?
         int right = (i == n - 1) ? n - 1 : i + 1;
 
         diff[0] = vertices[right][0] - vertices[left][0];

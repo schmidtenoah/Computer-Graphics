@@ -144,6 +144,7 @@ static void drawCurve(InputData *data, vec2 *ctrl, float step, float width, int 
     }
 
     model_updateCurve(curve.vertices, curve.normalVertices, curve.numVertices);
+    if (data->curve.buttonsChanged) data->curve.buttonsChanged = false; // TODO: Check, macht Sinn oder, weil sonst redundant neuberechnet wird
     shader_setColor(VEC3(1, 0, 0));
     model_drawCurve(curve.numVertices, width);
 
@@ -344,15 +345,15 @@ void initButtons(int btnCnt) {
         buttons[i] = &buttonStorage[i]; 
         buttons[i]->r = BUTTON_RADIUS; 
         if (i == 0) { 
-            buttons[i]->center[0] = rd.right * START_BUTTON_EDGE_DIST; 
+            buttons[i]->center[0] = rd.left * START_BUTTON_EDGE_DIST;
             buttons[i]->center[1] = 0.0f; 
         } else if (i == btnCnt - 1) { 
-            buttons[i]->center[0] = rd.left * END_BUTTON_EDGE_DIST; 
+            buttons[i]->center[0] = rd.right * END_BUTTON_EDGE_DIST;
             buttons[i]->center[1] = 0.0f; 
         } else { 
             float t = (float)i / (btnCnt- 1); 
-            buttons[i]->center[0] = rd.right * START_BUTTON_EDGE_DIST * (1.0f - t) 
-                                  + rd.left * END_BUTTON_EDGE_DIST * t; 
+            buttons[i]->center[0] = rd.left * START_BUTTON_EDGE_DIST * (1.0f - t)
+                                  + rd.right * END_BUTTON_EDGE_DIST * t;
             buttons[i]->center[1] = 0.0f; 
         } 
     } 
@@ -474,11 +475,11 @@ static void updateEdgeButtons(int btnCnt) {
     }
 
     // First button -> right edge
-    buttons[0]->center[0] = rd.right * START_BUTTON_EDGE_DIST;
+    buttons[0]->center[0] = rd.left * START_BUTTON_EDGE_DIST;
     buttons[0]->center[1] = 0.0f;
 
     // Last button -> left edge
-    buttons[btnCnt-1]->center[0] = rd.left * END_BUTTON_EDGE_DIST;
+    buttons[btnCnt-1]->center[0] = rd.right * END_BUTTON_EDGE_DIST;
     buttons[btnCnt-1]->center[1] = 0.0f;
 }
 
