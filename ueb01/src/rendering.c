@@ -171,30 +171,57 @@ static void drawClouds(InputData *data) {
     for (int i = 0; i < data->game.clouds.n; i++) {
         glm_vec2_copy(data->game.clouds.pos[i], pos);
 
+        // Soft drift animation
+        float drift = 0.015f * sinf((float)glfwGetTime() * 0.3f + i * 1.5f);
+        if (!data->paused) {
+            pos[0] += drift;
+        }
+
+        // Cloud composition
         vec2 offsets[] = {
-            { 0.0f, 0.0f },
-            { -0.03f, 0.02f },
-            { 0.03f, 0.02f },
-            { -0.01f, -0.02f },
-            { 0.02f, -0.01f }
+            { 0.0f, 0.0f },      // Center
+            { -0.04f, 0.01f },   // Left
+            { 0.04f, 0.01f },    // Right
+            { -0.02f, -0.02f },  // Bottom left
+            { 0.02f, -0.02f },   // Bottom right
+            { 0.0f, 0.025f },    // Top
+            { -0.06f, 0.0f },    // Far left
+            { 0.06f, 0.0f },     // Far right
         };
 
-        float hues[] = {0.4f, 0.5f, 0.6f, 0.5f, 0.45f};
+        float sizes[] = {
+            1.0f,   // Center
+            0.85f,  // Left
+            0.85f,  // Right
+            0.7f,   // Bottom left
+            0.7f,   // Bottom right
+            0.75f,  // Top
+            0.6f,   // Far left
+            0.6f,   // Far right
+        };
 
-        // cloud parts
-        for (int j = 0; j < 5; j++) {
+        // Cloud parts from back to front for proper layering
+        for (int j = 7; j >= 0; j--) {
             scene_pushMatrix();
+
+            float baseSize = data->game.clouds.colliderRadius * 0.9f;
+            float scale = baseSize * sizes[j];
+
             scene_translate(pos[0] + offsets[j][0], pos[1] + offsets[j][1], 0.0f);
-            scene_scale(data->game.clouds.colliderRadius * 0.82f, data->game.clouds.colliderRadius * 0.82f, 1.0f);
-            shader_setColor((vec3){0.2f, 0.2f + hues[j]*0.8f, 1.0f});
+            scene_scale(scale, scale * 0.85f, 1.0f); // Slightly flattened
+
+            // Gradient from white center to gray edges
+            float brightness = 0.85f + 0.15f * sizes[j];
+            shader_setColor((vec3){brightness, brightness, brightness * 1.05f});
+
             model_draw(MODEL_CIRCLE);
             scene_popMatrix();
         }
 
-        // collider
+        // Collider visualization
         if (data->game.showColliders) {
             scene_pushMatrix();
-            scene_translate(pos[0], pos[1], 0.0f);
+            scene_translate(data->game.clouds.pos[i][0], data->game.clouds.pos[i][1], 0.0f);
             scene_scale(data->game.clouds.colliderRadius, data->game.clouds.colliderRadius, 1.0f);
             shader_setColor(COLLIDER_COLOR);
             model_draw(MODEL_CIRCLE);
@@ -247,13 +274,35 @@ static void drawStars(InputData *data) {
 
 static void drawAirplane(InputData *data) {
     scene_pushMatrix();
-    shader_setColor(AIRPLANE_COLOR);
+
+    // 1. Shadow (drawn first so it's behind)
+    scene_pushMatrix();
+    shader_setColor((vec3){0.3f, 0.3f, 0.4f}); // Dark shadow
+    scene_translate(data->game.airplane.position[0] + 0.015f,
+                   data->game.airplane.position[1] - 0.015f, 0.0f);
+    scene_rotate(data->game.airplane.rotation * 180.0f / (float)M_PI, 0, 0, 1);
+    scene_scale(0.16f, 0.21f, 1.0f);
+    model_draw(MODEL_TRIANGLE);  // Still using triangle!
+    scene_popMatrix();
+
+    // 2. Main white body
+    scene_pushMatrix();
+    shader_setColor((vec3){0.95f, 0.95f, 1.0f}); // Paper white with slight blue tint
     scene_translate(data->game.airplane.position[0], data->game.airplane.position[1], 0.0f);
     scene_rotate(data->game.airplane.rotation * 180.0f / (float)M_PI, 0, 0, 1);
     scene_scale(0.15f, 0.2f, 1.0f);
     model_draw(MODEL_TRIANGLE);
+
+    // 3. Center fold (darker triangle on top for paper fold effect)
+    scene_pushMatrix();
+    scene_scale(0.3f, 0.95f, 1.0f);  // Thinner triangle in the center
+    shader_setColor((vec3){0.85f, 0.85f, 0.9f}); // Slightly darker for fold
+    model_draw(MODEL_TRIANGLE);
+    scene_popMatrix();
+    scene_popMatrix();
     scene_popMatrix();
 
+    // Colliders
     if (data->game.showColliders) {
         float colliderRadius = data->game.airplane.colliderRadius;
         shader_setColor(COLLIDER_COLOR);
