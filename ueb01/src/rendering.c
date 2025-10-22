@@ -371,9 +371,6 @@ static void drawGradientBackground(void) {
     glBindVertexArray(backgroundVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
-
-    // Depth-Test wieder aktivieren falls nötig
-    // glEnable(GL_DEPTH_TEST); // In 2D nicht nötig
 }
 
 void rendering_init(void) {
