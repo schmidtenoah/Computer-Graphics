@@ -6,7 +6,7 @@
 
 // LOCAL
 
-static Shader *shader = NULL, *normalPointShader = NULL;
+static Shader *shader = NULL, *normalPointShader = NULL, *gradientShader = NULL;
 
 static void cleanup(Shader *s) {
     if (s) {
@@ -20,6 +20,7 @@ static void cleanup(Shader *s) {
 void shader_cleanup(void) {
     cleanup(shader);
     cleanup(normalPointShader);
+    cleanup(gradientShader);
 }
 
 void shader_load(void) {
@@ -29,11 +30,21 @@ void shader_load(void) {
         RESOURCE_PATH "shader/simple/simple.frag"
     );
 
+    Shader *newGradientShader = shader_createVeFrShader(
+        "Gradient",
+        RESOURCE_PATH "shader/gradient/gradient.vert",
+        RESOURCE_PATH "shader/gradient/gradient.frag"
+    );
+
     if (newShader) {
         cleanup(shader);
         shader = newShader;
     }
 
+    if (newGradientShader) {
+        cleanup(gradientShader);
+        gradientShader = newGradientShader;
+    }
 
     Shader *newNormalShader = shader_createShader();
     shader_attachShaderFile(newNormalShader, GL_VERTEX_SHADER, RESOURCE_PATH "shader/normalPoint/normalPoint.vert");
@@ -72,3 +83,13 @@ void shader_setNormals(void) {
     scene_getP(mat);
     shader_setMat4(normalPointShader, "u_projMatrix", &mat);
 }
+
+void shader_renderGradient(void) {
+    shader_useShader(gradientShader);
+
+    vec3 topColor = {0.2f, 0.3f, 0.6f};
+    vec3 bottomColor = {0.6f, 0.7f, 0.9f};
+    shader_setVec3(gradientShader, "u_topColor", &topColor);
+    shader_setVec3(gradientShader, "u_bottomColor", &bottomColor);
+}
+

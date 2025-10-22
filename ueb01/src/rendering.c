@@ -37,6 +37,8 @@ static bool buttonInitilized = false;
 static Circle *buttons[BUTTON_COUNT];
 static Circle buttonStorage[BUTTON_COUNT];
 
+static GLuint backgroundVAO = 0, backgroundVBO = 0;
+
 static struct {
     vec2 vertices[CURVE_MAX_VERTICES];
     vec3 normalVertices[CURVE_MAX_VERTICES];
@@ -308,10 +310,52 @@ void initButtons(int btnCnt) {
     buttonInitilized = true;
 }
 
+// Funktion zum Zeichnen des Hintergrunds
+static void drawGradientBackground(void) {
+    // Depth-Test temporär deaktivieren für Hintergrund
+    glDisable(GL_DEPTH_TEST);
+
+    // Gradient Shader aktivieren
+    shader_renderGradient();
+
+    // Fullscreen Quad zeichnen
+    glBindVertexArray(backgroundVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    // Depth-Test wieder aktivieren falls nötig
+    // glEnable(GL_DEPTH_TEST); // In 2D nicht nötig
+}
+
 void rendering_init(void) {
     memset(&rd, 0, sizeof(RenderingData));
 
     scene_lookAt((vec3) {0, 0, 1}, GLM_VEC3_ZERO, GLM_YUP);
+
+    // Gradient Start
+    float backgroundVertices[] = {
+        // Position (NDC)
+        -1.0f, -1.0f, 0.0f,  // Links unten
+         1.0f, -1.0f, 0.0f,  // Rechts unten
+        -1.0f,  1.0f, 0.0f,  // Links oben
+
+         1.0f, -1.0f, 0.0f,  // Rechts unten
+         1.0f,  1.0f, 0.0f,  // Rechts oben
+        -1.0f,  1.0f, 0.0f   // Links oben
+    };
+
+    glGenVertexArrays(1, &backgroundVAO);
+    glGenBuffers(1, &backgroundVBO);
+
+    glBindVertexArray(backgroundVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, backgroundVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(backgroundVertices),
+                 backgroundVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    glBindVertexArray(0); // Gradient end
 
     // OpenGL Flags
     glCullFace(GL_BACK);
@@ -325,6 +369,8 @@ void rendering_init(void) {
 void rendering_draw(void) {
     InputData* input = getInputData();
 
+    drawGradientBackground();
+
     if(input->showWireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDisable(GL_CULL_FACE);
@@ -336,7 +382,7 @@ void rendering_draw(void) {
 
     debug_pushRenderScope("Scene");
     scene_pushMatrix();
-    
+
     checkAndDrawButtons(input);
 
     int btnCnt = input->curve.buttonCount;
@@ -365,7 +411,14 @@ void rendering_draw(void) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void rendering_cleanup(void) { 
+void rendering_cleanup(void) {
+    if (backgroundVBO) {
+        glDeleteBuffers(1, &backgroundVBO);
+    }
+    if (backgroundVAO) {
+        glDeleteVertexArrays(1, &backgroundVAO);
+    }
+
     shader_cleanup();
 }
    

@@ -13,4 +13,6 @@ void shader_setColor(vec3 color);
 
 void shader_setNormals(void);
 
+void shader_renderGradient(void);
+
 #endif // SHADER_H
