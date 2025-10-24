@@ -4,7 +4,7 @@
 #include "shader.h"
 #include "utils.h"
 
-#define AIRPLANE_START_T 0.0001f
+#define AIRPLANE_START_T 0.0f
 #define AIRPLANE_COLLIDER_RADIUS 0.03f
 #define AIRPLANE_DEFAULT_SPEED 0.2f
 #define CLOUD_COLLISION_RADIUS 0.08f

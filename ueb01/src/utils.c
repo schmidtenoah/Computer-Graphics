@@ -218,14 +218,15 @@ bool utils_isMouseInCircle(float mouseX, float mouseY, Circle *c, RenderingData 
 }
 
 void utils_calcNormals(vec2 *vertices, vec3 *normalDest, int n) {
+
     for (int i = 0; i < n; ++i) {
     vec3 diff, normal;
 
-        int left = (i == 0) ? 0 : i - 1; //TODO: bedeutet das nicht, dass bei Rand i=0 diff = 0 ist?
+        int left = (i == 0) ? 0 : i - 1;
         int right = (i == n - 1) ? n - 1 : i + 1;
 
-        diff[0] = vertices[right][0] - vertices[left][0];
-        diff[1] = vertices[right][1] - vertices[left][1];
+        diff[0] = vertices[left][0] - vertices[right][0];
+        diff[1] = vertices[left][1] - vertices[right][1];
         diff[2] = 0.0f;
 
         glm_vec3_cross(diff, (vec3) {0, 0, 1}, normal);
