@@ -1,18 +1,48 @@
+/**
+ * @file utils.c
+ * @brief Implementation of mathematical utility functions for curve rendering and collision detection.
+ *
+ * Implements curve evaluation using matrix-based approach:
+ * - B-spline curves: Smooth curves passing near control points with C2 continuity
+ * - Bezier curves: Curves with endpoints at first/last control points
+ *
+ * The general form is: P(t) = at³ + bt² + ct + d, where coefficients are computed
+ * from control points using matrices.
+ *
+ * Additional utilities include:
+ * - Convex hull calc
+ * - Tangent calc
+ * - Normal vector calc
+ * - Collision detection
+ *
+ * @authors Nikolaos Tsetsas, Noah Schmidt
+ */
+
 #include "utils.h"
 #include "rendering.h"
 #include "input.h"
 
+/** Maximum number of curve segments (each segment requires 4 control points) */
 #define MAX_SEGMENTS (BUTTON_COUNT - 3)
 
+/**
+ * Represents a curve segment with coefficients.
+ * Each segment is defined by: P(t) = at³ + bt² + ct + d
+ * Coefficients stored separately for X and Y coordinates.
+ */
 typedef struct {
     vec4 coeffsX;
     vec4 coeffsY;
 } Segment;
 
-// LOCAL
-
+/** Array of curve segments */
 static Segment segments[MAX_SEGMENTS];
 
+/**
+ * B-spline basis matrix for cubic curves.
+ * Provides C2 continuity (smooth acceleration).
+ * Multiplied by 1/6 during coefficient calculation.
+ */
 static const mat4 splineMatrix = {
         { -1,  3, -3,  1 },
         {  3, -6,  3,  0 },
@@ -20,6 +50,11 @@ static const mat4 splineMatrix = {
         {  1,  4,  1,  0 }
 };
 
+/**
+ * Bezier basis matrix for cubic curves.
+ * Curve passes through first and last control points.
+ * Standard cubic Bezier formulation.
+ */
 static const mat4 bezierMatrix = {
         { -1,  3, -3,  1 },
         {  3, -6,  3,  0 },
@@ -27,6 +62,16 @@ static const mat4 bezierMatrix = {
         {  1,  0,  0,  0 }
 };
 
+////////////////////////    LOCAL    ////////////////////////////
+
+/**
+ * Finds point with the lowest Y coordinate (tie-breaking with lowest X).
+ * Used as starting point for convex hull algorithm.
+ *
+ * @param points 2D vector of 2D points
+ * @param n Number of points
+ * @return Index of the lowest point
+ */
 static int findLowestPointVec2(vec2* points, int n) {
     int minIdx = 0;
     for (int i = 1; i < n; ++i) {
@@ -38,6 +83,14 @@ static int findLowestPointVec2(vec2* points, int n) {
     return minIdx;
 }
 
+/**
+ * Calculates angle between two points in range [0, 2π).
+ * Used to determine hull traversal direction.
+ *
+ * @param from Starting point
+ * @param to Ending point
+ * @return Angle in radians [0, 2π)
+ */
 static float angleBetweenVec2(vec2 from, vec2 to) {
     vec2 v;
     glm_vec2_sub(to, from, v);
@@ -46,16 +99,28 @@ static float angleBetweenVec2(vec2 from, vec2 to) {
     return angle;
 }
 
+/**
+ * Calcs coefficients for all segments of B-spline curve.
+ * Matrix multiplication: Coefficients = (1/6) * BasisMatrix * GeometryVector
+ *
+ * Each segment i uses control points [i, i+1, i+2, i+3].
+ *
+ * @param ctrl 2D vector of control points
+ * @param numPoints Total number of control points (>= 4)
+ */
 static void updateSplineCoefficients(vec2 *ctrl, int numPoints) {
     int numSegments = numPoints - 3;
 
+    // Process each segment of curve
     for (int i = 0; i < numSegments; ++i) {
+        // Get geometry vectors
         float Gx[4] = { ctrl[i][0], ctrl[i+1][0], ctrl[i+2][0], ctrl[i+3][0] };
         float Gy[4] = { ctrl[i][1], ctrl[i+1][1], ctrl[i+2][1], ctrl[i+3][1] };
 
         vec4 Cx = GLM_VEC4_ZERO_INIT;
         vec4 Cy = GLM_VEC4_ZERO_INIT;
 
+        // Matrix multiplication C= M*G
         for (int row = 0; row < 4; ++row) {
             for (int col = 0; col < 4; ++col) {
                 Cx[row] += splineMatrix[row][col] * Gx[col];
@@ -65,20 +130,33 @@ static void updateSplineCoefficients(vec2 *ctrl, int numPoints) {
             Cy[row] /= 6.0f;
         }
 
+        // Store coefficients for segment
         glm_vec4_copy(Cx, segments[i].coeffsX);
         glm_vec4_copy(Cy, segments[i].coeffsY);
     }
 }
 
+/**
+ * Calcs coefficients for all segments of Bezier curve.
+ * Matrix multiplication: Coefficients = BasisMatrix * GeometryVector
+ *
+ * For Bezier curves: only one segment (4 control points) is used.
+ *
+ * @param ctrl 2D vector of control points
+ * @param numPoints Total number of control points
+ */
 static void updateBezierCoefficients(vec2 *ctrl, int numPoints) {
     int numSegments = numPoints - 3;
 
+    // Proces each segment
     for (int i = 0; i < numSegments; ++i) {
+        // Get geometry vectors
         float Gx[4] = { ctrl[i][0], ctrl[i+1][0], ctrl[i+2][0], ctrl[i+3][0] };
         float Gy[4] = { ctrl[i][1], ctrl[i+1][1], ctrl[i+2][1], ctrl[i+3][1] };
 
         float Cx[4] = {0}, Cy[4] = {0};
 
+        // Matrix mult. C = M*G
         for (int row = 0; row < 4; ++row) {
             for (int col = 0; col < 4; ++col) {
                 Cx[row] += bezierMatrix[row][col] * Gx[col];
@@ -91,19 +169,20 @@ static void updateBezierCoefficients(vec2 *ctrl, int numPoints) {
     }
 }
 
-// PUBLIC
+////////////////////////    PUBLIC    ////////////////////////////
 
 void utils_evalSpline(vec2 *ctrl, int numPoints, float T, vec2 dest, bool *updateCoeffs) {
-    // TODO: Sollte gecached werden? Etwa coefficientsValid && lastNumPoints == numPoints
+    // Update coefficients if change
     if (updateCoeffs != NULL && *updateCoeffs) {
         updateSplineCoefficients(ctrl, numPoints);
         *updateCoeffs = false;
     }
 
+    // Map global params
     int numSegments = numPoints - 3;
     T = glm_clamp(T, 0.0f, 1.0f);
 
-    float segmentPos = T * numSegments;
+    float segmentPos = T * numSegments; // [0, numSegments]
     int i = (int) floorf(segmentPos);
     if (i >= numSegments) i = numSegments - 1;
     float t = segmentPos - i;
@@ -146,16 +225,20 @@ int utils_convexHullVec2(vec2* points, vec2* hull, int n) {
 
     int hullCount = 0;
 
+    // Find starting point
     int start = findLowestPointVec2(points, n);
     int current = start;
     float lastAngle = -1.0f; // previous angle in radians
 
+    // Wrapping
     do {
+        // add curr. point to hull
         glm_vec2_copy(points[current], hull[hullCount++]);
 
         int nextPoint = -1;
         float minAngle = 2.0f * (float)M_PI + 1.0f; // larger than max angle
 
+        // Find next hull vertex counterclockwise
         for (int i = 0; i < n; ++i) {
             if (i == current) continue;
 

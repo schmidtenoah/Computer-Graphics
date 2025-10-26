@@ -16,6 +16,7 @@
 
 #define CIRCLE_VERTEX_COUNT 64
 #define STAR_VERTEX_COUNT 10
+#define GRASS_CIRCLE_COUNT 12
 
 ///////////////////////    LOCAL    ////////////////////////////
 

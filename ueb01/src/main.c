@@ -1,3 +1,13 @@
+/**
+ * @file main.c
+ * @brief Main entry point and game loop
+ *
+ * Initializes all subsystems (input, GUI, rendering, models, game logic) and runs
+ * the main rendering loop. Manages program lifecycle from startup to shutdown.
+ *
+ * @authors Nikolaos Tsetsas, Noah Schmidt
+ */
+
 #include <fhwcg/fhwcg.h>
 #include "gui.h"
 #include "input.h"
@@ -8,7 +18,7 @@
 #define DEFAULT_WINDOW_WIDTH 700
 #define DEFAULT_WINDOW_HEIGHT 400
 
-// LOCAL
+////////////////////////    LOCAL    ////////////////////////////
 
 static void init(ProgContext ctx) {
     input_init(ctx);
@@ -27,7 +37,7 @@ static void cleanup(ProgContext ctx) {
     window_cleanup(ctx);
 }
 
-// PUBLIC
+////////////////////////    PUBLIC    ////////////////////////////
 
 int main(void) {
 

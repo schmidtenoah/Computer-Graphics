@@ -1,9 +1,22 @@
+/**
+ * @file logic.c
+ * @brief Implementation of game logic, physics and level management.
+ *
+ * Manages all game mechanics including:
+ * - Airplane movement along the curve with speed along curve slope.
+ * - Collision detection (stars, clouds, airplane vertices)
+ * - Level progression and win/lose conditions
+ * - Six pre-defined levels with increasing difficulty
+ *
+ * @authors Nikolaos Tsetsas, Noah Schmidt
+ */
+
 #include "logic.h"
 #include "input.h"
 #include "model.h"
-#include "shader.h"
 #include "utils.h"
 
+/** Game constants*/
 #define AIRPLANE_START_T 0.0f
 #define AIRPLANE_COLLIDER_RADIUS 0.03f
 #define AIRPLANE_DEFAULT_SPEED 0.2f
@@ -12,6 +25,11 @@
 
 #define LEVEL_COUNT 6
 
+/**
+ * Level data.
+ * Defines all properties for a level including:
+ * star positions, cloud positions, collision radii and control point count.
+ */
 typedef struct {
     vec2 *stars;
     int starCount;
@@ -22,7 +40,7 @@ typedef struct {
     int buttonCount;
 } Level;
 
-// LOCAL
+////////////////////////    LOCAL    ////////////////////////////
 
 // Level 1
 static vec2 starsLevel1[]  = { {0.0f, -0.4f} };
@@ -57,6 +75,9 @@ static vec2 starsLevel6[] = {
 };
 static vec2 cloudsLevel6[] = { {-0.1f, 0.1f} };
 
+/**
+ * Array of all levels
+ */
 static Level levels[LEVEL_COUNT] = {
     { starsLevel1, 1, STAR_COLLISION_RADIUS, cloudsLevel1, 0, CLOUD_COLLISION_RADIUS, 4 },
     { starsLevel2, 3, STAR_COLLISION_RADIUS, cloudsLevel2, 1, CLOUD_COLLISION_RADIUS, 5 },
@@ -66,22 +87,39 @@ static Level levels[LEVEL_COUNT] = {
     { starsLevel6, 40, STAR_COLLISION_RADIUS, cloudsLevel6, 1, CLOUD_COLLISION_RADIUS, 20 } 
 };
 
-static float curveT = AIRPLANE_START_T;
-static int currLevel = 0;
+/** Current position of airplane along curve [0.0, 1.0] */
+static float g_curveT = AIRPLANE_START_T;
 
+/** Current level */
+static int g_currLevel = 0;
+
+/**
+ * Copies level data into InputData structure.
+ * Updates star positions, cloud positions, collision radii, collection flags
+ * and control point count.
+ *
+ * Sets curve to spline mode for levels with more than 4 points.
+ *
+ * @param data Pointer to InputData
+ * @param level Pointer to Level configuration to copy from
+ */
 static void setLevelData(InputData *data, Level *level) {
+    // Star data
     data->game.stars.pos = level->stars;
     data->game.stars.n = level->starCount;
     data->game.stars.colliderRadius = level->starRadius;
 
+    // Cloud data
     data->game.clouds.pos = level->clouds;
     data->game.clouds.n = level->cloudCount;
     data->game.clouds.colliderRadius = level->cloudRadius;
 
+    // Reset star collection flags
     for (int i = 0; i < level->starCount; ++i) {
         data->game.collected[i] = false;
     }
 
+    // Curvev configs
     data->curve.buttonCount = level->buttonCount;
     if (level->buttonCount != 4) {
         data->curve.curveEval = utils_evalSpline;
@@ -89,17 +127,37 @@ static void setLevelData(InputData *data, Level *level) {
     data->curve.buttonsChanged = true;
 }
 
+/**
+ * Goes to the next level.
+ * Updates level data and puts according control point buttons.
+ *
+ * @param data Pointer to InputData to update
+ */
 static void loadNextLevel(InputData *data) {
-    currLevel = (currLevel + 1) % LEVEL_COUNT;
-    setLevelData(data, &levels[currLevel]);
-    data->game.currentLevel = currLevel;
-    initButtons(levels[currLevel].buttonCount);
+    g_currLevel = (g_currLevel + 1) % LEVEL_COUNT;
+    setLevelData(data, &levels[g_currLevel]);
+    data->game.currentLevel = g_currLevel;
+    initButtons(levels[g_currLevel].buttonCount);
 }
 
+/**
+ * Reloads the current level configuration.
+ * Resets star collection flags and control point count without changing level.
+ * Used when player fails (cloud collision) or manually restarts.
+ *
+ * @param data Pointer to InputData to update
+ */
 static void reloadLevel(InputData *data) {
-    setLevelData(data, &levels[currLevel]);
+    setLevelData(data, &levels[g_currLevel]);
 }
 
+/**
+ * Checks for collision between airplane and cloud obstacle.
+ * Tests all three airplane vertices against all clouds using circle-circle collision.
+ *
+ * @param data Pointer to InputData containing airplane and cloud positions
+ * @return true if any airplane vertex collides with any cloud, false otherwise
+ */
 static bool checkCloudCollision(InputData *data) {
     for (int c = 0; c < data->game.clouds.n; ++c) {
         for (int i = 0; i < 3; ++i) {
@@ -113,6 +171,14 @@ static bool checkCloudCollision(InputData *data) {
     return false;
 }
 
+/**
+ * Checks win condition: all stars collected.
+ * If all stars collected, advances to next level.
+ * If any stars missed, reloads current level.
+ * Called when airplane reaches end of curve (T >= 1.0).
+ *
+ * @param data Pointer to InputData containing star collection state
+ */
 static void checkWin(InputData *data) {
     bool allCollected = true;
     for (int i = 0; i < data->game.stars.n; ++i) {
@@ -129,9 +195,26 @@ static void checkWin(InputData *data) {
     }
 }
 
+/**
+ * Updates airplane position, rotation and collision geometry each frame.
+ *
+ * Physics simulation:
+ * 1. Calculate tangent at current curve position for rotation
+ * 2. Apply slope-dependent speed (faster downhill, slower uphill)
+ * 3. Advance curve parameter based on speed and delta time
+ * 4. Evaluate curve position and offset airplane perpendicular to tangent
+ * 5. Calculate rotation angle from tangent direction
+ * 7. Check for cloud collision and reset if hit
+ *
+ * @param data Pointer to InputData containing airplane and game state
+ * @param ctrl Array of control points defining the curve
+ * @param n Number of control points
+ */
 static void airplaneUpdate(InputData *data, vec2 *ctrl, int n) {
     vec2 T;
-    utils_getTangent(data->curve.curveEval, ctrl, n, curveT, T);
+
+    // Calc tangent
+    utils_getTangent(data->curve.curveEval, ctrl, n, g_curveT, T);
     glm_vec2_normalize(T);
 
     // slope-dependent speed
@@ -139,19 +222,19 @@ static void airplaneUpdate(InputData *data, vec2 *ctrl, int n) {
         float slopeInfluence = 1.3f;
         float slopeFactor = 1.0f - slopeInfluence * T[1];
         slopeFactor = glm_clamp(slopeFactor, 0.5f, 5.0f);
-        curveT += data->deltaTime * data->game.airplane.defaultSpeed * slopeFactor;
-        if (curveT >= 1.0f) {
-            curveT = AIRPLANE_START_T;
+        g_curveT += data->deltaTime * data->game.airplane.defaultSpeed * slopeFactor;
+        if (g_curveT >= 1.0f) {
+            g_curveT = AIRPLANE_START_T;
             data->game.isFlying = false;
             checkWin(data);
         }
     } else {
-        curveT = AIRPLANE_START_T;
+        g_curveT = AIRPLANE_START_T;
     }
 
     // position on spline
     vec2 P;
-    data->curve.curveEval(ctrl, n, curveT, P, false);
+    data->curve.curveEval(ctrl, n, g_curveT, P, false);
 
     // rotation (tip points along tangent)
     float angle = atan2f(T[1], T[0]) - (float)M_PI_2;
@@ -160,6 +243,7 @@ static void airplaneUpdate(InputData *data, vec2 *ctrl, int n) {
     float offset = 0.05f;
     vec2 Poffset = { P[0] + offsetDir[0]*offset, P[1] + offsetDir[1]*offset };
 
+    // Update airplane pos and rot
     data->game.airplane.position[0] = Poffset[0];
     data->game.airplane.position[1] = Poffset[1];
     data->game.airplane.rotation = angle;
@@ -174,12 +258,19 @@ static void airplaneUpdate(InputData *data, vec2 *ctrl, int n) {
     }
 
     if (data->game.isFlying && checkCloudCollision(data)) {
-        curveT = AIRPLANE_START_T;
+        g_curveT = AIRPLANE_START_T;
         data->game.isFlying = false;
         reloadLevel(data);
     }
 }
 
+/**
+ * Checks for collision between airplane and collectible stars.
+ * Tests all three airplane vertices against all uncollected stars.
+ * Marks stars as collected when hit. Only checks during flight.
+ *
+ * @param data Pointer to InputData containing airplane and star positions
+ */
 static void checkStarCollision(InputData *data) {
     if (!data->game.isFlying) {
         return;
@@ -198,7 +289,7 @@ static void checkStarCollision(InputData *data) {
     }
 }
 
-// PUBLIC
+////////////////////////    PUBLIC    ////////////////////////////
 
 void logic_update(InputData *data, vec2 *ctrl, int n) {
     airplaneUpdate(data, ctrl, n);
@@ -211,26 +302,26 @@ void logic_init() {
     data->game.airplane.colliderRadius = AIRPLANE_COLLIDER_RADIUS;
     data->game.airplane.defaultSpeed = AIRPLANE_DEFAULT_SPEED;
     reloadLevel(data);
-    initButtons(levels[currLevel].buttonCount);
+    initButtons(levels[g_currLevel].buttonCount);
 }
 
 void logic_skipLevel(InputData *data) {
     data->game.isFlying = false;
-    curveT = AIRPLANE_START_T;
+    g_curveT = AIRPLANE_START_T;
     loadNextLevel(data);
 }
 
 void logic_restartLevel(InputData *data) {
     data->game.isFlying = false;
-    curveT = AIRPLANE_START_T;
+    g_curveT = AIRPLANE_START_T;
     reloadLevel(data);
 }
 
 void loadLevel(int idx, InputData *data) {
     data->game.isFlying = false;
-    curveT = AIRPLANE_START_T;
-    currLevel = idx;
-    setLevelData(data, &levels[currLevel]);
-    data->game.currentLevel = currLevel;
-    initButtons(levels[currLevel].buttonCount);
+    g_curveT = AIRPLANE_START_T;
+    g_currLevel = idx;
+    setLevelData(data, &levels[g_currLevel]);
+    data->game.currentLevel = g_currLevel;
+    initButtons(levels[g_currLevel].buttonCount);
 }
