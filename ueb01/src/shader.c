@@ -1,13 +1,37 @@
+/**
+ * @file shader.c
+ * @brief Implementation of shader loading and uniforms.
+ *
+ * Handles loading shader files, compilation, linking, and reloading.
+ * Manages three shader programs:
+ * - simple (colored rendering),
+ * - gradient (background),
+ * - normalPoint (normal vector visualization with geometry shader).
+ *
+ * @authors Nikolaos Tsetsas, Noah Schmidt
+ */
+
 #include "shader.h"
 #include "rendering.h"
 
 #define NORMAL_COLOR ((vec3) {1, 1, 0})
 #define NORMAL_LENGTH 0.1f
 
-// LOCAL
+////////////////////////    LOCAL    ////////////////////////////
 
+/**
+ * Shader programs:
+ * - simple (basic color)
+ * - normal (normal visualization)
+ * - gradient (background gradient)
+ */
 static Shader *shader = NULL, *normalPointShader = NULL, *gradientShader = NULL;
 
+/**
+ * Helper function to delete a shader and set pointer to NULL.
+ *
+ * @param s Pointer to shader pointer to clean up
+ */
 static void cleanup(Shader *s) {
     if (s) {
         shader_deleteShader(&s);
@@ -15,7 +39,7 @@ static void cleanup(Shader *s) {
     }
 }
 
-// PUBLIC
+////////////////////////    PUBLIC    ////////////////////////////
 
 void shader_cleanup(void) {
     cleanup(shader);

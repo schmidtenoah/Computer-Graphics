@@ -1,16 +1,30 @@
+/**
+* @file gui.c
+ * @brief Implementation of GUI components.
+ *
+ * Manages the rendering of the help overlay, settings menu
+ * and start button.
+ *
+ * @authors Nikolaos Tsetsas, Noah Schmidt
+ */
+
 #include "gui.h"
 #include "input.h"
 #include "logic.h"
 #include "utils.h"
 
-
 #define GUI_WINDOW_HELP "window_help"
 #define GUI_WINDOW_MENU "window_menu"
 
-// LOCAL
-static bool showSpline = true;
-static bool showBezier = false;
+////////////////////////     LOCAL    ////////////////////////////
 
+/* Booleans to toggle between spline and bezier */
+static bool g_showSpline = true;
+static bool g_showBezier = false;
+
+/**
+ * Constant array for help messages and their correspondant button.
+ */
 static const GuiHelpLine help[] = {
     {"Quit Programm", "ESC"},
     {"Toggle Help", "F1"},
@@ -26,6 +40,13 @@ static const GuiHelpLine help[] = {
     {"Convex Hull", "C"}
 };
 
+/**
+ * Renders the help overlay window showing keyboard shortcuts.
+ * Only displays if input->showHelp is true.
+ *
+ * @param ctx Program context
+ * @param input Pointer to input data containing GUI state
+ */
 static void gui_renderHelp(ProgContext ctx, InputData* input) {
     if (!(input->showHelp)) {
         return;
@@ -41,6 +62,18 @@ static void gui_renderHelp(ProgContext ctx, InputData* input) {
     input->showHelp = gui_widgetHelp(ctx, help, NK_LEN(help), nk_rect(x, y, width, height));
 }
 
+/**
+ * Renders the main settings menu window with collapsible sections.
+ * Sections:
+ * - General (help, fullscreen, pause),
+ * - Visual (wireframe),
+ * - Curve (spline/bezier, polygon, convex hull, normals width, resolution),
+ * - Game (level info, restart/skip, start, colliders, airplane speed)
+ * Only displays if input->showMenu is true.
+ *
+ * @param ctx Program context
+ * @param input Pointer to input data containing GUI state
+ */
 static void gui_renderMenu(ProgContext ctx, InputData* input)
 {
     if (!(input->showMenu)) {
@@ -87,16 +120,16 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
         if (gui_treePush(ctx, NK_TREE_TAB, "Curve", NK_MINIMIZED)) {
             gui_layoutRowDynamic(ctx, 25, 1);
             if (!input->game.isFlying) {
-                if (gui_checkbox(ctx, "Spline", &showSpline)) {
-                    showBezier = !showSpline;
-                    input->curve.curveEval = showSpline ? utils_evalSpline : utils_evalBezier;
+                if (gui_checkbox(ctx, "Spline", &g_showSpline)) {
+                    g_showBezier = !g_showSpline;
+                    input->curve.curveEval = g_showSpline ? utils_evalSpline : utils_evalBezier;
                 }
-                if (gui_checkbox(ctx, "Bezier", &showBezier)) {
+                if (gui_checkbox(ctx, "Bezier", &g_showBezier)) {
                     if (input->curve.buttonCount != 4) {
-                        showBezier = !showBezier;
+                        g_showBezier = !g_showBezier;
                     } else {
-                        showSpline = !showBezier;
-                        input->curve.curveEval = showSpline ? utils_evalSpline : utils_evalBezier;
+                        g_showSpline = !g_showBezier;
+                        input->curve.curveEval = g_showSpline ? utils_evalSpline : utils_evalBezier;
                         input->curve.buttonsChanged = true;
                         input->curve.resolutionChanged = true;
                     }
@@ -150,6 +183,13 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
     gui_end(ctx);
 }
 
+/**
+ * Renders "Start" button at bottom-right corner of the screen.
+ * Only visible/clickable if plane isn't flying.
+ *
+ * @param ctx Program context
+ * @param input Pointer to input data to see if plane is flying
+ */
 static void gui_renderStart(ProgContext ctx, InputData* input) {
     int w, h;
     window_getRealSize(ctx, &w, &h);
@@ -168,7 +208,7 @@ static void gui_renderStart(ProgContext ctx, InputData* input) {
     gui_end(ctx);
 }
 
-// PUBLIC
+////////////////////////     PUBLIC    ////////////////////////////
 
 void gui_renderContent(ProgContext ctx)
 {

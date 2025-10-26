@@ -1,5 +1,12 @@
 /**
- * 
+ * @file input.c
+ * @brief Implementation of input event handling and callbacks.
+ *
+ * Manages keyboard, mouse, and window resize events.
+ * Updates InputData structure based on user input and event to handlers
+ * like shader reload, fullscreen toggle, level selection, etc.
+ *
+ * @authors Nikolaos Tsetsas, Noah Schmidt
  */
 
 #include "input.h"
@@ -8,10 +15,19 @@
 #include "utils.h"
 #include "logic.h"
 
-// LOCAL
+////////////////////////    LOCAL    ////////////////////////////
 
-static InputData input;
+/** Global application state containing all input, settings, and game data */
+static InputData g_input;
 
+/**
+ * Callback to handle all keyboard input.
+ *
+ * @param ctx Program Context
+ * @param key Pressed key
+ * @param action Corresponding action to pressed key
+ * @param mods Unused modifiert keys
+ */
 static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
     NK_UNUSED(mods);
 
@@ -97,11 +113,28 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
     }
 }
 
+/**
+ * Callback for window resize events.
+ * Updates rendering viewport and button if window size changes.
+ *
+ * @param ctx Program context
+ * @param width New framebuffer width
+ * @param height New framebuffer height
+ */
 static void input_frameBufferSizeEvent(ProgContext ctx, int width, int height) {
     NK_UNUSED(ctx);
     rendering_resize(width, height, getInputData()->curve.buttonCount);
 }
 
+/**
+ * Callback for mouse button events (press and release).
+ * Stores button and action in InputData
+ *
+ * @param ctx Program context
+ * @param button Mouse button identifier
+ * @param action Action performed for button
+ * @param mods Unsued modifier keys
+ */
 static void input_mouseButtonEvent(ProgContext ctx, int button, int action, int mods) {
     NK_UNUSED(ctx);
     NK_UNUSED(mods);
@@ -111,6 +144,14 @@ static void input_mouseButtonEvent(ProgContext ctx, int button, int action, int 
     data->mouse.action = action;
 }
 
+/**
+ * Callback for mouse movement events.
+ * Updates mouse position in InputData.
+ *
+ * @param ctx Program context
+ * @param x Mouse X coordinate
+ * @param y Mouse Y coordinate
+ */
 static void input_mouseMoveEvent(ProgContext ctx, double x, double y) {
     NK_UNUSED(ctx);
 
@@ -120,33 +161,33 @@ static void input_mouseMoveEvent(ProgContext ctx, double x, double y) {
 }
 
 
-// PUBLIC
+////////////////////////     PUBLIC    ////////////////////////////
 
 void input_init(ProgContext ctx) {
     NK_UNUSED(ctx);
 
-    input.isFullscreen = false;
-    input.showHelp = false;
-    input.showMenu = true;
-    input.showWireframe = false;
-    input.paused = false;
-    input.mouse.button = GLFW_KEY_UNKNOWN;
-    input.mouse.xPos = 0;
-    input.mouse.yPos = 0;
-    input.curve.resolution = 0.02f;
-    input.curve.width = 2.0f;
-    input.curve.drawPolygon = false;
-    input.curve.drawConvexHull = false;
-    input.game.isFlying = false;
-    input.game.showColliders = false;
-    input.curve.showNormals = false;
-    input.curve.curveEval = utils_evalSpline;
-    input.curve.buttonsChanged = true;
-    input.curve.resolutionChanged = true;
+    g_input.isFullscreen = false;
+    g_input.showHelp = false;
+    g_input.showMenu = true;
+    g_input.showWireframe = false;
+    g_input.paused = false;
+    g_input.mouse.button = GLFW_KEY_UNKNOWN;
+    g_input.mouse.xPos = 0;
+    g_input.mouse.yPos = 0;
+    g_input.curve.resolution = 0.02f;
+    g_input.curve.width = 2.0f;
+    g_input.curve.drawPolygon = false;
+    g_input.curve.drawConvexHull = false;
+    g_input.game.isFlying = false;
+    g_input.game.showColliders = false;
+    g_input.curve.showNormals = false;
+    g_input.curve.curveEval = utils_evalSpline;
+    g_input.curve.buttonsChanged = true;
+    g_input.curve.resolutionChanged = true;
 }
 
 InputData* getInputData(void) {
-    return &input;
+    return &g_input;
 }
 
 void input_registerCallbacks(ProgContext ctx) {
