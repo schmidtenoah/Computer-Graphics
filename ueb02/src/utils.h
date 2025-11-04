@@ -1,0 +1,128 @@
+/**
+ * @file utils.h
+ * @brief Utility functions for curve mathematics, hull and collision detection
+ *
+ * Provides mathematical stuff for the curve visualization including:
+ * - Curve evaluation (B-spline and Bezier curve)
+ * - Convex hull
+ * - Circle-circle collision detection
+ * - Normal vector calculation for curve vertices
+ * - Tangent vector computation for curve orientation
+ * - Mouse-circle intersection testing for UI interaction
+ *
+ * @authors Nikolaos Tsetsas, Noah Schmidt
+ */
+
+#ifndef UTILS_H
+#define UTILS_H
+
+#include <fhwcg/fhwcg.h>
+#include "rendering.h"
+#include "input.h"
+#include "logic.h"
+
+#define VEC3(x, y, z) ((vec3){(float) x, (float) y, (float) z})
+#define VEC3X(x) ((vec3){(float) x, (float) x, (float) x})
+#define VEC2(x, y) ((vec2) {x, y})
+
+#define DEFINE_ARRAY_TYPE(TYPE, NAME)                                          \
+typedef struct {                                                               \
+    TYPE *data;                                                                \
+    size_t size;                                                               \
+    size_t capacity;                                                           \
+} NAME;                                                                        \
+                                                                               \
+static inline void NAME##_init(NAME *arr) {                                    \
+    arr->data = NULL;                                                          \
+    arr->size = 0;                                                             \
+    arr->capacity = 0;                                                         \
+}                                                                              \
+                                                                               \
+static inline void NAME##_free(NAME *arr) {                                    \
+    free(arr->data);                                                           \
+    arr->data = NULL;                                                          \
+    arr->size = 0;                                                             \
+    arr->capacity = 0;                                                         \
+}                                                                              \
+                                                                               \
+static inline void NAME##_clear(NAME *arr) {                                   \
+    arr->size = 0;                                                             \
+}                                                                              \
+                                                                               \
+static inline void NAME##_reserve(NAME *arr, size_t min_capacity) {            \
+    if (arr->capacity < min_capacity) {                                        \
+        size_t new_cap = arr->capacity ? arr->capacity * 2 : 8;                \
+        if (new_cap < min_capacity) new_cap = min_capacity;                    \
+        TYPE *new_data = malloc(new_cap * sizeof(TYPE));                       \
+        assert(new_data && "malloc failed in " #NAME "_reserve");              \
+        if (arr->data) memcpy(new_data, arr->data, arr->size * sizeof(TYPE));  \
+        free(arr->data);                                                       \
+        arr->data = new_data;                                                  \
+        arr->capacity = new_cap;                                               \
+    }                                                                          \
+}                                                                              \
+                                                                               \
+static inline void NAME##_push(NAME *arr, TYPE value) {                        \
+    if (arr->size >= arr->capacity)                                            \
+        NAME##_reserve(arr, arr->size + 1);                                    \
+    arr->data[arr->size++] = value;                                            \
+}
+
+typedef enum {
+    HF_FLAT,
+    HF_SIN,
+    HF_COS,
+    HF_GAUSS,
+    HF_RANDOM,
+    HF_HILL,
+    HF_EXP,
+    HF_COUNT
+} HeightFuncType;
+
+static inline void vec3arr_init(Vec3Arr *arr) {
+    arr->size = 0;
+    arr->capacity = 0;
+    arr->data = NULL;
+}
+
+static inline void vec3arr_free(Vec3Arr *arr) {
+    free(arr->data);
+    arr->data = NULL;
+    arr->size = 0;
+    arr->capacity = 0;
+}
+
+static inline void vec3arr_clear(Vec3Arr *arr) {
+    arr->size = 0;
+}
+
+static inline void vec3arr_reserve(Vec3Arr *arr, size_t min_capacity) {
+    if (arr->capacity < min_capacity) {
+        size_t new_cap = arr->capacity ? arr->capacity * 2 : 8;
+        if (new_cap < min_capacity)
+            new_cap = min_capacity;
+        vec3 *new_data = (vec3*) malloc(new_cap * sizeof(vec3));
+        assert(new_data && "vec3arr_reserve: malloc failed");
+        if (arr->data) {
+            memcpy(new_data, arr->data, arr->size * sizeof(vec3));
+            free(arr->data);
+        }
+        arr->data = new_data;
+        arr->capacity = new_cap;
+    }
+}
+
+static inline void vec3arr_push(Vec3Arr *arr, vec3 value) {
+    if (arr->size >= arr->capacity) {
+        vec3arr_reserve(arr, arr->size + 1);
+    }
+    glm_vec3_copy(value, arr->data[arr->size++]);
+}
+
+void utils_applyHeightFunction(HeightFuncType funcType);
+
+void utils_calculatePolynomialPatch(Patch *p, mat4 geometryTerm);
+
+PatchEvalResult utils_evalPatchLocal(Patch *p, float s, float t);
+
+#endif // UTILS_H
