@@ -46,6 +46,12 @@ typedef struct {
         Camera *data;
         vec3 pos, dir;
         bool isFlying;
+        struct {
+            vec3 p0, p1, p2, p3;
+            float t;
+            float duration;
+            bool showPath;
+        } flight;
     } cam;
 
     struct {

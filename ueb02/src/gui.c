@@ -32,12 +32,13 @@ static const GuiHelpLine help[] = {
     {"Toggle Wireframe", "F3"},
     {"Toggle Menu", "F4"},
     {"Reload Shaders", "R"}, 
-    {"Level Selection", "Num-Keys"},
+    {"Height Functions", "1-7"},
     {"Pause", "P"},
-    {"Start", "S"},
-    {"Toggle Curve", "B"},
     {"Normals", "N"},
-    {"Convex Hull", "C"}
+    {"Camera Flight", "C"},
+    {"Toggle Flight Path", "V"},
+    {"Select CP", "Left/Right"},
+    {"Adjust Height", "Up/Down"}
 };
 
 /**
@@ -169,6 +170,23 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
             gui_propertyInt(ctx, "skip count", 1, &input->selection.skipCnt, 200, 1, 0.1f);
             gui_propertyFloat(ctx, "height change", 0.01f, &input->selection.selectedYChange, 2, 0.01f, 0.01f);
        
+            gui_treePop(ctx);
+        }
+
+        if (gui_treePush(ctx, NK_TREE_TAB, "Camera Flight", NK_MINIMIZED)) {
+            gui_layoutRowDynamic(ctx, 25, 1);
+
+            if (gui_button(ctx, input->cam.isFlying ? "Flying..." : "Start Flight (C)")) {
+                if (!input->cam.isFlying) {
+                    input->cam.isFlying = true;
+                    input->cam.flight.t = 0.0f;
+                }
+            }
+
+            gui_checkbox(ctx, "Show Path (V)", &input->cam.flight.showPath);
+
+            gui_propertyFloat(ctx, "duration", 1.0f, &input->cam.flight.duration, 20.0f, 0.1f, 0.1f);
+
             gui_treePop(ctx);
         }
 

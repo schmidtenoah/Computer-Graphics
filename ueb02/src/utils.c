@@ -175,3 +175,43 @@ PatchEvalResult utils_evalPatchLocal(Patch *p, float s, float t) {
     assert(!isnan(r.value));
     return r;
 }
+
+void utils_evalBezier3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3 out) {
+    // Cubic Bezier: B(t) = (1-t)³p0 + 3(1-t)²t*p1 + 3(1-t)t²p2 + t³p3
+    float t2 = t * t;
+    float t3 = t2 * t;
+    float mt = 1.0f - t;
+    float mt2 = mt * mt;
+    float mt3 = mt2 * mt;
+
+    float b0 = mt3;
+    float b1 = 3.0f * mt2 * t;
+    float b2 = 3.0f * mt * t2;
+    float b3 = t3;
+
+    out[0] = b0 * p0[0] + b1 * p1[0] + b2 * p2[0] + b3 * p3[0];
+    out[1] = b0 * p0[1] + b1 * p1[1] + b2 * p2[1] + b3 * p3[1];
+    out[2] = b0 * p0[2] + b1 * p1[2] + b2 * p2[2] + b3 * p3[2];
+}
+
+void utils_evalBezierTangent3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3 out) {
+    // Derivative of cubic Bezier: B'(t) = 3(1-t)²(p1-p0) + 6(1-t)t(p2-p1) + 3t²(p3-p2)
+    float t2 = t * t;
+    float mt = 1.0f - t;
+    float mt2 = mt * mt;
+
+    float b0 = 3.0f * mt2;
+    float b1 = 6.0f * mt * t;
+    float b2 = 3.0f * t2;
+
+    vec3 d01, d12, d23;
+    glm_vec3_sub(p1, p0, d01);
+    glm_vec3_sub(p2, p1, d12);
+    glm_vec3_sub(p3, p2, d23);
+
+    out[0] = b0 * d01[0] + b1 * d12[0] + b2 * d23[0];
+    out[1] = b0 * d01[1] + b1 * d12[1] + b2 * d23[1];
+    out[2] = b0 * d01[2] + b1 * d12[2] + b2 * d23[2];
+
+    glm_vec3_normalize(out);
+}

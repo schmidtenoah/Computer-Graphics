@@ -52,4 +52,11 @@ void logic_cleanup(void);
 
 void logic_printPolynomials(void);
 
+void logic_initCameraFlight(InputData *data);
+
+void logic_updateCameraFlight(InputData *data, float deltaTime);
+
+// For highest and lowest points on surface
+void logic_findSurfaceExtremes(Vec3Arr *vertices, int dimension, vec3 highest, vec3 lowest);
+
 #endif // LOGIC_H

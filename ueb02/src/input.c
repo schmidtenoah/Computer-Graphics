@@ -118,6 +118,16 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             data->selection.selectedCp = (data->selection.selectedCp - data->selection.skipCnt) 
             % data->surface.controlPoints.size;
             break;
+
+        case GLFW_KEY_C:
+            if (!data->cam.isFlying) {
+                data->cam.isFlying = true;
+                data->cam.flight.t = 0.01f;
+            }
+            break;
+
+        case GLFW_KEY_V:
+            data->cam.flight.showPath = !data->cam.flight.showPath;
         
         default:
             break;

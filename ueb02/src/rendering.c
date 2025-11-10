@@ -216,6 +216,29 @@ void rendering_draw(void) {
         model_drawSurface(data->showNormals, &viewMat, &modelviewMat);
     }
 
+    // Draw camera flight path if enabled
+    if (data->cam.flight.showPath) {
+        const int SEG = 128;
+        vec3 p;
+        for (int i = 0; i <= SEG; ++i) {
+            float t = (float)i / (float)SEG;
+            utils_evalBezier3D(
+                data->cam.flight.p0,
+                data->cam.flight.p1,
+                data->cam.flight.p2,
+                data->cam.flight.p3,
+                t, p
+            );
+            scene_pushMatrix();
+            scene_translateV(p);
+            scene_scaleV(VEC3X(0.003f));
+            shader_setColor(VEC3(1, 1, 0));
+            model_drawSimple(MODEL_SPHERE);
+            scene_popMatrix();
+        }
+    }
+
+
     scene_popMatrix();
     debug_popRenderScope();
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

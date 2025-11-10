@@ -79,6 +79,13 @@ typedef enum {
     HF_COUNT
 } HeightFuncType;
 
+typedef struct {
+    vec3 p0, p1, p2, p3;  // 4 control points
+    bool isActive;
+    float t;              // current time parameter [0,1]
+    float duration;       // total duration in seconds
+} BezierCameraPath;
+
 static inline void vec3arr_init(Vec3Arr *arr) {
     arr->size = 0;
     arr->capacity = 0;
@@ -124,5 +131,12 @@ void utils_applyHeightFunction(HeightFuncType funcType);
 void utils_calculatePolynomialPatch(Patch *p, mat4 geometryTerm);
 
 PatchEvalResult utils_evalPatchLocal(Patch *p, float s, float t);
+
+// Bezier curve evaluation for camera flight
+void utils_evalBezier3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3 out);
+
+// Bezier curve tangent for camera direction
+void utils_evalBezierTangent3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3 out);
+
 
 #endif // UTILS_H

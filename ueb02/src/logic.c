@@ -19,6 +19,7 @@
 #include <fhwcg/fhwcg.h>
 
 #define RANDOM_HEIGHT(scale) ((((float)rand() / RAND_MAX) - 0.5f) * scale)
+#define CAMERA_HEIGHT_OFFSET 0.5f // Height that camera flight is above surface
 
 static struct {
     vec4 coeffsX;
@@ -117,7 +118,7 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension) {
     //int gridSize = patchCount * samplesPerPatch + 1;
     int gridSize = (samples < 2) ? 2 : samples;
     int totalVerts = gridSize * gridSize;
-    
+
     vec3 *positions = malloc(sizeof(vec3) * totalVerts);
     vec3 *normals   = malloc(sizeof(vec3) * totalVerts);
     vec2 *texcoords = malloc(sizeof(vec2) * totalVerts);
@@ -193,18 +194,21 @@ static void checkSelectionState(InputData *data) {
 
 void logic_update(InputData *data) {
     checkSelectionState(data);
-    
+
     // Calculate all polynomials if geometry matrix changed
     if (data->surface.dimensionChanged || data->surface.offsetChanged) {
         rebuildSurface(
-            &data->surface.controlPoints, 
-            data->surface.dimension, 
+            &data->surface.controlPoints,
+            data->surface.dimension,
             data->surface.resolution,
             data->surface.controlPointOffset
         );
         data->surface.offsetChanged = false;
         data->surface.dimensionChanged = false;
         data->surface.resolutionChanged = false;
+
+        // Update camera flight path when surface geometry changes
+        logic_initCameraFlight(data);
     }
 
     // Only sample new position if resolution changed
@@ -215,6 +219,18 @@ void logic_update(InputData *data) {
             data->surface.dimension
         );
         data->surface.resolutionChanged = false;
+    }
+
+    // Initialize camera flight when started
+    static bool wasFlying = false;
+    if (data->cam.isFlying && !wasFlying) {
+        logic_initCameraFlight(data);
+    }
+    wasFlying = data->cam.isFlying;
+
+    // Update camera flight
+    if (data->cam.isFlying) {
+        logic_updateCameraFlight(data, data->deltaTime);
     }
 }
 
@@ -241,4 +257,156 @@ void logic_init(void) {
 void logic_cleanup(void) {
     PatchArr_free(&g_patches);
     vec3arr_free(&getInputData()->surface.controlPoints);
+}
+
+// Evaluate surface at specific global T_s and T_t coordinates
+static float evalSurfaceAt(int dimension, float T_s, float T_t) {
+    int patchCount = dimension - 3;
+
+    float global_s = T_s * patchCount;
+    int patch_s = (int)floor(global_s);
+    if (patch_s >= patchCount) patch_s = patchCount - 1;
+    if (patch_s < 0) patch_s = 0;
+    float local_s = global_s - patch_s;
+
+    float global_t = T_t * patchCount;
+    int patch_t = (int)floor(global_t);
+    if (patch_t >= patchCount) patch_t = patchCount - 1;
+    if (patch_t < 0) patch_t = 0;
+    float local_t = global_t - patch_t;
+
+    Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
+    PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
+
+    return res.value;
+}
+
+void logic_findSurfaceExtremes(Vec3Arr *cp, int dimension, vec3 highest, vec3 lowest) {
+    int patchCount = dimension - 3;
+    int samples = 50;  // Sample resolution for finding extremes
+
+    float maxHeight = -1e10f;
+    float minHeight = 1e10f;
+    vec3 maxPos, minPos;
+
+    float maxX = cp->data[dimension-1][0];
+    float maxZ = cp->data[(dimension-1)*dimension][2];
+
+    for (int i = 0; i < samples; ++i) {
+        float T_s = (float)i / (samples - 1);
+        float global_s = T_s * patchCount;
+        int patch_s = (int)floor(global_s);
+        if (patch_s >= patchCount) patch_s = patchCount - 1;
+        float local_s = global_s - patch_s;
+
+        for (int j = 0; j < samples; ++j) {
+            float T_t = (float)j / (samples - 1);
+            float global_t = T_t * patchCount;
+            int patch_t = (int)floor(global_t);
+            if (patch_t >= patchCount) patch_t = patchCount - 1;
+            float local_t = global_t - patch_t;
+
+            Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
+            PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
+
+            // Use global T_s and T_t to map to world coordinates
+            float x = T_t * maxX;
+            float z = T_s * maxZ;
+            float y = res.value;
+
+            if (y > maxHeight) {
+                maxHeight = y;
+                maxPos[0] = x;
+                maxPos[1] = y;
+                maxPos[2] = z;
+            }
+
+            if (y < minHeight) {
+                minHeight = y;
+                minPos[0] = x;
+                minPos[1] = y;
+                minPos[2] = z;
+            }
+        }
+    }
+
+    glm_vec3_copy(maxPos, highest);
+    glm_vec3_copy(minPos, lowest);
+}
+
+void logic_initCameraFlight(InputData *data) {
+    vec3 highest, lowest;
+    logic_findSurfaceExtremes(&data->surface.controlPoints, data->surface.dimension, highest, lowest);
+
+    // Set start and end points (with height offset)
+    glm_vec3_copy(highest, data->cam.flight.p0);
+    data->cam.flight.p0[1] += CAMERA_HEIGHT_OFFSET;
+
+    glm_vec3_copy(lowest, data->cam.flight.p3);
+    data->cam.flight.p3[1] += CAMERA_HEIGHT_OFFSET;
+
+    // Calculate intermediate control points
+    // Line is divided into 3 equal parts
+    vec3 line;
+    glm_vec3_sub(data->cam.flight.p3, data->cam.flight.p0, line);
+
+    // P1 at 1/3 of the line (x,z only)
+    data->cam.flight.p1[0] = data->cam.flight.p0[0] + line[0] / 3.0f;
+    data->cam.flight.p1[2] = data->cam.flight.p0[2] + line[2] / 3.0f;
+
+    // P2 at 2/3 of the line (x,z only)
+    data->cam.flight.p2[0] = data->cam.flight.p0[0] + 2.0f * line[0] / 3.0f;
+    data->cam.flight.p2[2] = data->cam.flight.p0[2] + 2.0f * line[2] / 3.0f;
+
+    // Calculate y coordinates from surface at those x,z positions
+    float maxX = data->surface.controlPoints.data[data->surface.dimension-1][0];
+    float maxZ = data->surface.controlPoints.data[(data->surface.dimension-1)*data->surface.dimension][2];
+
+    // For P1: convert world coords to normalized surface coords, then evaluate
+    float T_s1 = data->cam.flight.p1[2] / maxZ;
+    float T_t1 = data->cam.flight.p1[0] / maxX;
+    data->cam.flight.p1[1] = evalSurfaceAt(data->surface.dimension, T_s1, T_t1) + CAMERA_HEIGHT_OFFSET;
+
+    // For P2
+    float T_s2 = data->cam.flight.p2[2] / maxZ;
+    float T_t2 = data->cam.flight.p2[0] / maxX;
+    data->cam.flight.p2[1] = evalSurfaceAt(data->surface.dimension, T_s2, T_t2) + CAMERA_HEIGHT_OFFSET;
+
+    // Reset time parameter
+    data->cam.flight.t = 0.0f;
+}
+
+void logic_updateCameraFlight(InputData *data, float deltaTime) {
+    if (!data->cam.isFlying) {
+        return;
+    }
+
+    // Advance time
+    data->cam.flight.t += deltaTime / data->cam.flight.duration;
+
+    if (data->cam.flight.t >= 1.0f) {
+        // Flight finished
+        data->cam.flight.t = 1.0f;
+        data->cam.isFlying = false;
+    }
+
+    // Evaluate position on Bezier curve
+    utils_evalBezier3D(
+        data->cam.flight.p0,
+        data->cam.flight.p1,
+        data->cam.flight.p2,
+        data->cam.flight.p3,
+        data->cam.flight.t,
+        data->cam.pos
+    );
+
+    // Evaluate tangent for camera direction
+    utils_evalBezierTangent3D(
+        data->cam.flight.p0,
+        data->cam.flight.p1,
+        data->cam.flight.p2,
+        data->cam.flight.p3,
+        data->cam.flight.t,
+        data->cam.dir
+    );
 }
