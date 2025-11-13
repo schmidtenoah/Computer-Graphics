@@ -111,3 +111,13 @@ void shader_setSimpleMVP(void) {
     scene_getMVP(mat);
     shader_setMat4(simpleShader, "u_mvpMatrix", &mat);
 }
+
+void shader_setTexture(GLuint textureId, bool useTexture) {
+    shader_useShader(modelShader);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    
+    shader_setInt(modelShader, "u_texture", 0);
+    shader_setBool(modelShader, "u_useTexture", useTexture);
+}

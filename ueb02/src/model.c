@@ -18,11 +18,15 @@
 #define SPHERE_NUM_STACKS SPHERE_NUM_SLICES
 
 #define SURFACE_DEFAULT_SIZE 16
+#define NUM_TEXTURES 3
 
 ///////////////////////    LOCAL    ////////////////////////////
 
 /** Array of pointers to mesh models (circle, square, star, triangle) */
 static Mesh *g_models[MODEL_MESH_COUNT];
+
+/** Texture IDs for surface textures */
+static GLuint g_textureIds[NUM_TEXTURES] = {0};
 
 /** VAO and VBO for curve */
 static GLuint g_curveVAO = 0, g_curveVBO = 0;
@@ -111,6 +115,39 @@ static void model_initCurve(void) {
 void model_init(void) {
     model_initSphere();
     model_initSurface();
+    model_loadTextures();
+}
+
+void model_loadTextures(void) {
+    // Load 3 different textures
+    // You'll need to provide actual texture file paths
+    // For now, this creates empty textures that you can replace
+    const char* texturePaths[NUM_TEXTURES] = {
+        RESOURCE_PATH "textures/texture1.jpg",
+        RESOURCE_PATH "textures/texture2.jpg",
+        RESOURCE_PATH "textures/texture3.jpg"
+    };
+    
+    for (int i = 0; i < NUM_TEXTURES; i++) {
+        g_textureIds[i] = texture_loadTexture(texturePaths[i], GL_REPEAT);
+        
+        // Set texture parameters
+        glBindTexture(GL_TEXTURE_2D, g_textureIds[i]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+GLuint model_getTextureId(int index) {
+    if (index < 0 || index >= NUM_TEXTURES) {
+        return g_textureIds[0];
+    }
+    return g_textureIds[index];
 }
 
 void model_cleanup(void) {
@@ -121,6 +158,13 @@ void model_cleanup(void) {
 
         mesh_disposeMesh(&(g_models[i]));
         g_models[i] = NULL;
+    }
+    
+    // Cleanup textures
+    for (int i = 0; i < NUM_TEXTURES; i++) {
+        if (g_textureIds[i] != 0) {
+            texture_deleteTexture(&g_textureIds[i]);
+        }
     }
     
     glDeleteBuffers(1, &g_surface.vbo);

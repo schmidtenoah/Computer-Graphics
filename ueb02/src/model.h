@@ -44,6 +44,20 @@ void model_init(void);
 void model_cleanup(void);
 
 /**
+ * Loads textures for surface rendering.
+ * Loads 3 different textures for the surface.
+ */
+void model_loadTextures(void);
+
+/**
+ * Returns the current texture ID based on index.
+ * 
+ * @param index Texture index (0-2)
+ * @return GLuint texture ID
+ */
+GLuint model_getTextureId(int index);
+
+/**
  * Draws model (circle, square, star or triangle)
  * Sets the MVP and renders the given model mesh.
  *

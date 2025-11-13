@@ -19,7 +19,7 @@
 #include <fhwcg/fhwcg.h>
 
 #define RANDOM_HEIGHT(scale) ((((float)rand() / RAND_MAX) - 0.5f) * scale)
-#define CAMERA_HEIGHT_OFFSET 0.5f // Height that camera flight is above surface
+#define CAMERA_HEIGHT_OFFSET 0.0f // Height that camera flight is above surface
 
 static struct {
     vec4 coeffsX;
@@ -33,7 +33,7 @@ DEFINE_ARRAY_TYPE(Patch, PatchArr)
 static PatchArr g_patches;
 static float g_curveT = 0.0f;
 
-static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
+static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset, vec3 minPoint, vec3 maxPoint, bool *extremesValid) {
     int oldDim = (int)sqrtf((float)cp->size);
     if (oldDim * oldDim != (int)cp->size) {
         oldDim = 0;
@@ -43,6 +43,11 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
     Vec3Arr newPoints;
     vec3arr_init(&newPoints);
     vec3arr_reserve(&newPoints, newDim * newDim);
+
+    // Initialize extremes
+    float minHeight = 1e10f;
+    float maxHeight = -1e10f;
+    vec3 minPos, maxPos;
 
     for (int i = 0; i < newDim; ++i) {
         for (int j = 0; j < newDim; ++j) {
@@ -85,12 +90,28 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
             }
 
             p[1] = height;
+            
+            // Track min/max
+            if (height > maxHeight) {
+                maxHeight = height;
+                glm_vec3_copy(p, maxPos);
+            }
+            if (height < minHeight) {
+                minHeight = height;
+                glm_vec3_copy(p, minPos);
+            }
+            
             vec3arr_push(&newPoints, p);
         }
     }
 
     vec3arr_free(cp);
     *cp = newPoints;
+    
+    // Store extremes
+    glm_vec3_copy(minPos, minPoint);
+    glm_vec3_copy(maxPos, maxPoint);
+    *extremesValid = true;
 }
 
 static void updatePatchesFromControlPoints(Vec3Arr *cp, int dimension) {
@@ -113,7 +134,7 @@ static void updatePatchesFromControlPoints(Vec3Arr *cp, int dimension) {
     }
 }
 
-void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension) {
+void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float textureTiling) {
     int patchCount = dimension - 3;
     //int gridSize = patchCount * samplesPerPatch + 1;
     int gridSize = (samples < 2) ? 2 : samples;
@@ -159,9 +180,9 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension) {
             glm_vec3_cross(rs, rt, n);
             glm_vec3_normalize_to(n, normals[idx]);
 
-            // TexCoords global
-            texcoords[idx][0] = T_s;
-            texcoords[idx][1] = T_t;
+            // TexCoords with tiling
+            texcoords[idx][0] = T_s * textureTiling;
+            texcoords[idx][1] = T_t * textureTiling;
         }
     }
 
@@ -172,21 +193,63 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension) {
 }
 
 
-static void rebuildSurface(Vec3Arr *cp, int dimension, int samples, float cpOffset) {
-    updateControlPoints(cp, dimension, cpOffset);
+static void rebuildSurface(Vec3Arr *cp, int dimension, int samples, float cpOffset, float textureTiling, vec3 minPoint, vec3 maxPoint, bool *extremesValid) {
+    updateControlPoints(cp, dimension, cpOffset, minPoint, maxPoint, extremesValid);
     updatePatchesFromControlPoints(cp, dimension);
-    generateSurfaceVertices(cp, samples, dimension);
+    generateSurfaceVertices(cp, samples, dimension, textureTiling);
+}
+
+static void recalculateExtremes(Vec3Arr *cp, vec3 minPoint, vec3 maxPoint, bool *extremesValid) {
+    if (cp->size == 0) {
+        *extremesValid = false;
+        return;
+    }
+
+    float minHeight = 1e10f;
+    float maxHeight = -1e10f;
+    vec3 minPos, maxPos;
+
+    for (size_t i = 0; i < cp->size; ++i) {
+        float height = cp->data[i][1];
+        
+        if (height > maxHeight) {
+            maxHeight = height;
+            glm_vec3_copy(cp->data[i], maxPos);
+        }
+        if (height < minHeight) {
+            minHeight = height;
+            glm_vec3_copy(cp->data[i], minPos);
+        }
+    }
+
+    glm_vec3_copy(minPos, minPoint);
+    glm_vec3_copy(maxPos, maxPoint);
+    *extremesValid = true;
 }
 
 static void checkSelectionState(InputData *data) {
+    bool heightChanged = false;
+
     if (data->selection.pressingUp) {
         data->surface.controlPoints.data[data->selection.selectedCp][1] += data->selection.selectedYChange;
         data->surface.dimensionChanged = true;
+        heightChanged = true;
     }
 
     if (data->selection.pressingDown) {
         data->surface.controlPoints.data[data->selection.selectedCp][1] -= data->selection.selectedYChange;
         data->surface.dimensionChanged = true;
+        heightChanged = true;
+    }
+
+    // Recalculate extremes if height was manually changed
+    if (heightChanged) {
+        recalculateExtremes(
+            &data->surface.controlPoints,
+            data->surface.minPoint,
+            data->surface.maxPoint,
+            &data->surface.extremesValid
+        );
     }
 }
 
@@ -201,7 +264,11 @@ void logic_update(InputData *data) {
             &data->surface.controlPoints,
             data->surface.dimension,
             data->surface.resolution,
-            data->surface.controlPointOffset
+            data->surface.controlPointOffset,
+            data->surface.textureTiling,
+            data->surface.minPoint,
+            data->surface.maxPoint,
+            &data->surface.extremesValid
         );
         data->surface.offsetChanged = false;
         data->surface.dimensionChanged = false;
@@ -216,7 +283,8 @@ void logic_update(InputData *data) {
         generateSurfaceVertices(
             &data->surface.controlPoints,
             data->surface.resolution, 
-            data->surface.dimension
+            data->surface.dimension,
+            data->surface.textureTiling
         );
         data->surface.resolutionChanged = false;
     }
@@ -281,62 +349,12 @@ static float evalSurfaceAt(int dimension, float T_s, float T_t) {
     return res.value;
 }
 
-void logic_findSurfaceExtremes(Vec3Arr *cp, int dimension, vec3 highest, vec3 lowest) {
-    int patchCount = dimension - 3;
-    int samples = 50;  // Sample resolution for finding extremes
-
-    float maxHeight = -1e10f;
-    float minHeight = 1e10f;
-    vec3 maxPos, minPos;
-
-    float maxX = cp->data[dimension-1][0];
-    float maxZ = cp->data[(dimension-1)*dimension][2];
-
-    for (int i = 0; i < samples; ++i) {
-        float T_s = (float)i / (samples - 1);
-        float global_s = T_s * patchCount;
-        int patch_s = (int)floor(global_s);
-        if (patch_s >= patchCount) patch_s = patchCount - 1;
-        float local_s = global_s - patch_s;
-
-        for (int j = 0; j < samples; ++j) {
-            float T_t = (float)j / (samples - 1);
-            float global_t = T_t * patchCount;
-            int patch_t = (int)floor(global_t);
-            if (patch_t >= patchCount) patch_t = patchCount - 1;
-            float local_t = global_t - patch_t;
-
-            Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
-            PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
-
-            // Use global T_s and T_t to map to world coordinates
-            float x = T_t * maxX;
-            float z = T_s * maxZ;
-            float y = res.value;
-
-            if (y > maxHeight) {
-                maxHeight = y;
-                maxPos[0] = x;
-                maxPos[1] = y;
-                maxPos[2] = z;
-            }
-
-            if (y < minHeight) {
-                minHeight = y;
-                minPos[0] = x;
-                minPos[1] = y;
-                minPos[2] = z;
-            }
-        }
-    }
-
-    glm_vec3_copy(maxPos, highest);
-    glm_vec3_copy(minPos, lowest);
-}
-
 void logic_initCameraFlight(InputData *data) {
     vec3 highest, lowest;
-    logic_findSurfaceExtremes(&data->surface.controlPoints, data->surface.dimension, highest, lowest);
+    
+    // Use cached extremes (always valid at this point)
+    glm_vec3_copy(data->surface.maxPoint, highest);
+    glm_vec3_copy(data->surface.minPoint, lowest);
 
     // Set start and end points (with height offset)
     glm_vec3_copy(highest, data->cam.flight.p0);

@@ -1,6 +1,8 @@
 #version 430
 
 uniform vec3 u_color = vec3(1, 1, 1); 
+uniform sampler2D u_texture;
+uniform bool u_useTexture = false;
 
 out vec4 fragColor;
 
@@ -26,24 +28,30 @@ in VS_OUT {
 } fs_in;
 
 void main(void) {
-    float height = fs_in.PositionWS.y;
-
-    vec3 color;
-    if (height <= HEIGHT_LOWEST) {
-        color = COLOR_LOWEST;
-    } else if (height <= HEIGHT_VERY_LOW) {
-        color = COLOR_VERY_LOW;
-    } else if (height <= HEIGHT_LOW) {
-        color = COLOR_LOW;
-    } else if (height <= HEIGHT_MEDIUM) {
-        color = COLOR_MEDIUM;
-    } else if (height <= HEIGHT_HIGH) {
-        color = COLOR_HIGH;
-    } else if (height <= HEIGHT_VERY_HIGH) {
-        color = COLOR_VERY_HIGH;
+    if (u_useTexture) {
+        // Use texture
+        fragColor = texture(u_texture, fs_in.TexCoords);
     } else {
-        color = COLOR_HIGHEST;
-    }
+        // Use height-based coloring
+        float height = fs_in.PositionWS.y;
 
-    fragColor = vec4(color, 1.0);
+        vec3 color;
+        if (height <= HEIGHT_LOWEST) {
+            color = COLOR_LOWEST;
+        } else if (height <= HEIGHT_VERY_LOW) {
+            color = COLOR_VERY_LOW;
+        } else if (height <= HEIGHT_LOW) {
+            color = COLOR_LOW;
+        } else if (height <= HEIGHT_MEDIUM) {
+            color = COLOR_MEDIUM;
+        } else if (height <= HEIGHT_HIGH) {
+            color = COLOR_HIGH;
+        } else if (height <= HEIGHT_VERY_HIGH) {
+            color = COLOR_VERY_HIGH;
+        } else {
+            color = COLOR_HIGHEST;
+        }
+
+        fragColor = vec4(color, 1.0);
+    }
 }

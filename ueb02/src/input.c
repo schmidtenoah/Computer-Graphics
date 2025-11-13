@@ -128,6 +128,15 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
 
         case GLFW_KEY_V:
             data->cam.flight.showPath = !data->cam.flight.showPath;
+            break;
+
+        case GLFW_KEY_T:
+            data->surface.useTexture = !data->surface.useTexture;
+            break;
+
+        case GLFW_KEY_Z:
+            data->surface.currentTextureIndex = (data->surface.currentTextureIndex + 1) % 3;
+            break;
         
         default:
             break;
@@ -201,8 +210,6 @@ void input_init(ProgContext ctx) {
     g_input.curve.width = 2.0f;
     g_input.curve.drawPolygon = false;
     g_input.curve.drawConvexHull = false;
-    g_input.game.isFlying = false;
-    g_input.game.showColliders = false;
     g_input.curve.showNormals = false;
     g_input.curve.buttonsChanged = true;
     g_input.curve.resolutionChanged = true;
@@ -225,6 +232,10 @@ void input_init(ProgContext ctx) {
     g_input.surface.showControlPoints = true;
     g_input.surface.showSurface = true;
     g_input.surface.controlPointOffset = CONTROL_POINT_OFFSET;
+    g_input.surface.useTexture = false;
+    g_input.surface.currentTextureIndex = 0;
+    g_input.surface.textureTiling = 4.0f;  // Texture repeats 4 times across surface
+    g_input.surface.extremesValid = false;
     vec3arr_init(&g_input.surface.controlPoints);
 
     g_input.selection.selectedCp = 0;

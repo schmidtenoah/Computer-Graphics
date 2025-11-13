@@ -70,6 +70,12 @@ typedef struct {
         bool showControlPoints;
         bool showSurface;
         Vec3Arr controlPoints;
+        bool useTexture;
+        int currentTextureIndex;
+        float textureTiling;  // Texture repeat factor
+        vec3 minPoint;
+        vec3 maxPoint;
+        bool extremesValid;
     } surface;
 
     struct {
@@ -90,23 +96,6 @@ typedef struct {
         bool resolutionChanged;
         bool buttonsChanged;
     } curve;
-
-    struct {
-        bool isFlying;
-        bool showColliders;
-        struct {
-            vec2 position;
-            float rotation;
-            vec2 vertices[3];
-            float colliderRadius;
-            float defaultSpeed;
-        } airplane;
-        struct {
-            vec2 *pos;
-            int n;
-            float colliderRadius;
-        } stars, clouds;
-    } game;
 
 } InputData;
 

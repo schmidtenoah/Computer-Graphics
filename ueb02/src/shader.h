@@ -47,4 +47,6 @@ void shader_setNormals(void);
 
 void shader_setSimpleMVP(void);
 
+void shader_setTexture(GLuint textureId, bool useTexture);
+
 #endif // SHADER_H

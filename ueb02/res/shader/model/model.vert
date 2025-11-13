@@ -17,6 +17,7 @@ void main(void) {
     mat4 viewInverse = inverse(u_viewMatrix);
     mat4 model = viewInverse * u_modelviewMatrix;
     vs_out.PositionWS = vec3(model * vec4(pos, 1.0));
+    vs_out.TexCoords = tex;
 
     gl_Position = u_mvpMatrix * vec4(pos, 1);
 }

@@ -136,6 +136,17 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
             gui_checkbox(ctx, "Control Points", &input->surface.showControlPoints);
             gui_checkbox(ctx, "Surface", &input->surface.showSurface);
             gui_checkbox(ctx, "Normals", &input->showNormals);
+            gui_checkbox(ctx, "Use Texture (T)", &input->surface.useTexture);
+            
+            if (input->surface.useTexture) {
+                gui_propertyInt(ctx, "Texture", 0, &input->surface.currentTextureIndex, 2, 1, 1);
+                
+                float oldTiling = input->surface.textureTiling;
+                gui_propertyFloat(ctx, "Tiling", 0.5f, &input->surface.textureTiling, 20.0f, 0.1f, 0.1f);
+                if (!glm_eq(oldTiling, input->surface.textureTiling)) {
+                    input->surface.resolutionChanged = true;
+                }
+            }
 
             if (gui_button(ctx, "print polynomials")) {
                 logic_printPolynomials();
@@ -189,45 +200,39 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
 
             gui_treePop(ctx);
         }
-
-        if (gui_treePush(ctx, NK_TREE_TAB, "Game", NK_MINIMIZED)) {
-            gui_layoutRowDynamic(ctx, 25, 1);
-
-            if (!input->game.isFlying) {
-                if (gui_button(ctx, "Start")) {
-                    input->game.isFlying = true;
-                }
-            }
-            
-            gui_checkbox(ctx, "Colliders", &input->game.showColliders);
-
-            gui_propertyFloat(ctx, "speed", 0.01f, &input->game.airplane.defaultSpeed, 1.0f, 0.001f, 0.0005f);
-    
-            gui_treePop(ctx);
-        } 
     }
     gui_end(ctx);
 }
 
 /**
- * Renders "Start" button at bottom-right corner of the screen.
- * Only visible/clickable if plane isn't flying.
+ * Renders camera flight controls at bottom-right corner of the screen.
  *
  * @param ctx Program context
- * @param input Pointer to input data to see if plane is flying
+ * @param input Pointer to input data
  */
-static void gui_renderStart(ProgContext ctx, InputData* input) {
+static void gui_renderCameraControls(ProgContext ctx, InputData* input) {
     int w, h;
     window_getRealSize(ctx, &w, &h);
 
-    if (gui_begin(ctx, "stats", nk_rect((float) w - 100, (float) h - 30, 100, 30), 
+    if (gui_begin(ctx, "camera_controls", nk_rect((float) w - 150, (float) h - 60, 150, 60), 
         NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BACKGROUND)) 
     {
-        gui_layoutRowDynamic(ctx, 30, 1);
-        if (!input->game.isFlying) {
-            if (gui_button(ctx, "Start")) {
-                input->game.isFlying = true;
+        gui_layoutRowDynamic(ctx, 25, 1);
+        
+        if (!input->cam.isFlying) {
+            if (gui_button(ctx, "Start Flight (C)")) {
+                input->cam.isFlying = true;
+                input->cam.flight.t = 0.0f;
             }
+        } else {
+            char label[32];
+            snprintf(label, sizeof(label), "Flying... %.0f%%", input->cam.flight.t * 100.0f);
+            gui_label(ctx, label, NK_TEXT_CENTERED);
+        }
+        
+        gui_layoutRowDynamic(ctx, 25, 1);
+        if (gui_button(ctx, input->cam.flight.showPath ? "Hide Path" : "Show Path")) {
+            input->cam.flight.showPath = !input->cam.flight.showPath;
         }
     }
 
@@ -241,5 +246,5 @@ void gui_renderContent(ProgContext ctx)
     InputData* input = getInputData();
     gui_renderHelp(ctx, input);
     gui_renderMenu(ctx, input);
-    gui_renderStart(ctx, input);
+    gui_renderCameraControls(ctx, input);
 }

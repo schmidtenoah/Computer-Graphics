@@ -213,6 +213,15 @@ void rendering_draw(void) {
 
     if (data->surface.showSurface) {
         scene_getMV(modelviewMat);
+        
+        // Set texture if enabled
+        if (data->surface.useTexture) {
+            GLuint texId = model_getTextureId(data->surface.currentTextureIndex);
+            shader_setTexture(texId, true);
+        } else {
+            shader_setTexture(0, false);
+        }
+        
         model_drawSurface(data->showNormals, &viewMat, &modelviewMat);
     }
 
