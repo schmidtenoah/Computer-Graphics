@@ -119,9 +119,6 @@ void model_init(void) {
 }
 
 void model_loadTextures(void) {
-    // Load 3 different textures
-    // You'll need to provide actual texture file paths
-    // For now, this creates empty textures that you can replace
     const char* texturePaths[NUM_TEXTURES] = {
         RESOURCE_PATH "textures/texture1.jpg",
         RESOURCE_PATH "textures/texture2.jpg",
