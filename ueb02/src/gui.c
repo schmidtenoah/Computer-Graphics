@@ -107,13 +107,24 @@ static void gui_renderMenu(ProgContext ctx, InputData* input)
                 input->paused = !input->paused;
             }
 
+            gui_checkbox(ctx, "Wireframe", &input->showWireframe);
+
             gui_treePop(ctx);
         }
 
-        if (gui_treePush(ctx, NK_TREE_TAB, "Visual", NK_MINIMIZED)) {
-            // Wireframe
+        if (gui_treePush(ctx, NK_TREE_TAB, "Light", NK_MINIMIZED)) {
             gui_layoutRowDynamic(ctx, 25, 1);
-            gui_checkbox(ctx, "Wireframe", &input->showWireframe);
+
+            gui_checkbox(ctx, "enabled", &input->pointLight.enabled);
+            gui_checkbox(ctx, "visualize", &input->pointLight.visualize);
+            gui_widgetColor3(ctx, "color", input->pointLight.color);
+            gui_propertyFloat(ctx, "falloff constant", 0.0f, &input->pointLight.falloff[0], 10.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "falloff linear", 0.0f, &input->pointLight.falloff[1], 10.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "falloff quadratic", 0.0f, &input->pointLight.falloff[2], 10.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "ambient factor", 0.0f, &input->pointLight.ambientFactor, 1.0f, 0.0001f, 0.1f);
+            gui_propertyFloat(ctx, "speed", 0.0f, &input->pointLight.speed, 10.0f, 0.01f, 0.1f);
+            gui_propertyFloat(ctx, "radius", 0.001f, &input->pointLight.rotationRadius, 10.0f, 0.0001f, 0.01f);
+            gui_widgetVec3(ctx, "center", input->pointLight.center, 10.0f, 0.001f, 0.01f);
 
             gui_treePop(ctx);
         }

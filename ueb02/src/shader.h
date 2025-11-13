@@ -49,4 +49,8 @@ void shader_setSimpleMVP(void);
 
 void shader_setTexture(GLuint textureId, bool useTexture);
 
+void shader_setCamPos(vec3 camPosWS);
+
+void shader_setPointLight(vec3 color, vec3 posWS, vec3 falloff, bool enabled, float ambientFactor);
+
 #endif // SHADER_H

@@ -138,5 +138,16 @@ void utils_evalBezier3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3 out);
 // Bezier curve tangent for camera direction
 void utils_evalBezierTangent3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3 out);
 
+/**
+ * Rotates a point around the Y-axis.
+ * @param[in,out] currPos pointer to the center point to rotate
+ * @param[in,out] currAngle pointer to the current angle (in radians)
+ * @param center the center of rotation
+ * @param radius the radius of the rotation
+ * @param speed the rotation speed (radians per second)
+ * @param deltaTime the time elapsed since the last update (in seconds)
+ */
+void utils_rotateAroundYAxis(vec3* currPos, float* currAngle, vec3 center, float radius, float speed, float deltaTime);
+
 
 #endif // UTILS_H

@@ -82,34 +82,6 @@ static void model_initSurface(void) {
     glBindVertexArray(0);
 }
 
-/**
- * Initializes the curve's VAO and VBO.
- */
-static void model_initCurve(void) {
-    glGenVertexArrays(1, &g_curveVAO);
-    glGenBuffers(1, &g_curveVBO);
-
-    glBindVertexArray(g_curveVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, g_curveVBO);
-
-
-    // dynamic draw and reservation for largest possible curve
-    glBufferData(GL_ARRAY_BUFFER, CURVE_MAX_VERTICES * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
-
-
-    glBindVertexArray(0);
-}
-
-
 ///////////////////////    PUBLIC    ////////////////////////////
 
 void model_init(void) {
@@ -218,25 +190,6 @@ void model_drawCurve(int numVertices, float lineWidth) {
         glDrawArrays(GL_POINTS, 0, numVertices);
     }
 
-    glBindVertexArray(0);
-}
-
-void model_updateCurve(vec2 *vertices, vec3 *normalVertices, int numVertices) {
-    Vertex curveData[CURVE_MAX_VERTICES];
-
-    for (int i = 0; i < numVertices; ++i) {
-        curveData[i].position[0] = vertices[i][0];
-        curveData[i].position[1] = vertices[i][1];
-        curveData[i].position[2] = 0.0f;
-
-        curveData[i].normal[0] = (normalVertices == NULL) ? 0 : normalVertices[i][0];
-        curveData[i].normal[1] = (normalVertices == NULL) ? 0 : normalVertices[i][1];
-        curveData[i].normal[2] = (normalVertices == NULL) ? 0 : normalVertices[i][2];
-    }
-
-    glBindVertexArray(g_curveVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, g_curveVBO);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, numVertices * sizeof(Vertex), curveData);
     glBindVertexArray(0);
 }
 

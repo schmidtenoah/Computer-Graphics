@@ -16,18 +16,6 @@
 
 #include <fhwcg/fhwcg.h>
 
-#define CURVE_MAX_VERTICES 10000
-
-
-/**
- * Represents circle in 2D space.
- * Used for collision detection and button positioning.
- */
-typedef struct {
-    vec2 center;
-    float r;
-} Circle;
-
 /**
  * Rendering viewport and projection data.
  * Contains screen resolution and projection bounds.

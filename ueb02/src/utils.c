@@ -215,3 +215,15 @@ void utils_evalBezierTangent3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3
 
     glm_vec3_normalize(out);
 }
+
+void utils_rotateAroundYAxis(vec3 *currPos, float *currAngle, vec3 center, float radius, float speed, float deltaTime) {
+    *currAngle += speed * deltaTime;
+
+    // Wrap angle to avoid overflow
+    if (*currAngle > 2.0f * M_PI) *currAngle -= 2.0f * (float) M_PI;
+
+    // Compute new position around Y-axis
+    (*currPos)[0] = center[0] + radius * cosf(*currAngle);
+    (*currPos)[1] = center[1];
+    (*currPos)[2] = center[2] + radius * sinf(*currAngle);
+}

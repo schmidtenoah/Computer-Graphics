@@ -23,15 +23,7 @@ typedef struct {
     vec3 *data;
 } Vec3Arr;
 
-// TODO: REMOVE
-typedef void (*CurveEvalFn)(vec2* ctrl, int numPoints, float t, vec2 dest, bool *updateCoeffs);
-
-/** Struct containing all data for application state
-* - GUI
-* - Curve
-* - Airplane
-* - Game
-*/
+/** Struct containing all data for application state. */
 typedef struct {
     bool isFullscreen;
     bool showWireframe;
@@ -86,7 +78,6 @@ typedef struct {
     } selection;
 
     struct {
-        CurveEvalFn curveEval;
         float width;
         float resolution;
         bool drawPolygon;
@@ -96,6 +87,19 @@ typedef struct {
         bool resolutionChanged;
         bool buttonsChanged;
     } curve;
+
+    struct {
+        vec3 posWS;
+        vec3 color;
+        vec3 falloff;  // x: constant, y: linear, z: quadratic
+        bool enabled;
+        float ambientFactor;
+        bool visualize;
+        vec3 center;
+        float currAngle;
+        float rotationRadius;
+        float speed;
+    } pointLight;
 
 } InputData;
 

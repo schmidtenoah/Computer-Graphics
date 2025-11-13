@@ -274,6 +274,13 @@ void logic_update(InputData *data) {
         data->surface.dimensionChanged = false;
         data->surface.resolutionChanged = false;
 
+        vec3 center;
+        glm_vec3_add(data->surface.controlPoints.data[0], 
+            data->surface.controlPoints.data[data->surface.controlPoints.size - 1], center);
+        glm_vec3_scale(center, 0.5f, center);
+        center[1] += 0.35f;
+        glm_vec3_copy(center, data->pointLight.center);
+
         // Update camera flight path when surface geometry changes
         logic_initCameraFlight(data);
     }
@@ -352,7 +359,7 @@ static float evalSurfaceAt(int dimension, float T_s, float T_t) {
 void logic_initCameraFlight(InputData *data) {
     vec3 highest, lowest;
     
-    // Use cached extremes (always valid at this point)
+    // Use cached extremes
     glm_vec3_copy(data->surface.maxPoint, highest);
     glm_vec3_copy(data->surface.minPoint, lowest);
 

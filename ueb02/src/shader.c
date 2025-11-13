@@ -21,7 +21,6 @@
 
 ////////////////////////    LOCAL    ////////////////////////////
 
-
 static Shader *modelShader, *simpleShader, *normalShader;
 
 /**
@@ -34,6 +33,15 @@ static void cleanup(Shader *s) {
         shader_deleteShader(&s);
         s = NULL;
     }
+}
+
+static void worldToView(vec3 vec, vec3 dest, bool isPos) {
+    mat4 vm;
+    scene_getMV(vm);
+
+    vec4 vecWS = {vec[0], vec[1], vec[2], isPos};
+    glm_mat4_mulv(vm, vecWS, vecWS);
+    glm_vec3_copy((vec3) {vecWS[0], vecWS[1], vecWS[2]}, dest);
 }
 
 ////////////////////////    PUBLIC    ////////////////////////////
@@ -120,4 +128,22 @@ void shader_setTexture(GLuint textureId, bool useTexture) {
     
     shader_setInt(modelShader, "u_texture", 0);
     shader_setBool(modelShader, "u_useTexture", useTexture);
+}
+
+void shader_setCamPos(vec3 camPosWS) {
+    shader_useShader(modelShader);
+    vec3 camPosVS = {0};
+    worldToView(camPosWS, camPosVS, true);
+    shader_setVec3(modelShader, "u_camPosVS", (vec3*)camPosVS);
+}
+
+void shader_setPointLight(vec3 color, vec3 posWS, vec3 falloff, bool enabled, float ambientFactor) {
+    shader_useShader(modelShader);
+    vec3 posVS = {0};
+    worldToView(posWS, posVS, true);
+    shader_setVec3(modelShader, "u_pointLight.posVS", &posVS);
+    shader_setVec3(modelShader, "u_pointLight.color", (vec3*)color);
+    shader_setVec3(modelShader, "u_pointLight.falloff", (vec3*)falloff);
+    shader_setBool(modelShader, "u_pointLight.enabled", enabled);
+    shader_setFloat(modelShader, "u_pointLight.ambientFactor", ambientFactor);
 }

@@ -11,6 +11,8 @@ uniform mat4 u_viewMatrix;
 out VS_OUT {
     vec2 TexCoords;
     vec3 PositionWS;
+    vec3 NormalVS;
+    vec3 PositionVS;
 } vs_out;
 
 void main(void) {
@@ -18,6 +20,10 @@ void main(void) {
     mat4 model = viewInverse * u_modelviewMatrix;
     vs_out.PositionWS = vec3(model * vec4(pos, 1.0));
     vs_out.TexCoords = tex;
+    vs_out.PositionVS = vec3(u_modelviewMatrix * vec4(pos, 1.0));
+
+    mat3 normalMatrix = transpose(inverse(mat3(u_modelviewMatrix)));
+    vs_out.NormalVS = normalize(normalMatrix * norm);
 
     gl_Position = u_mvpMatrix * vec4(pos, 1);
 }
