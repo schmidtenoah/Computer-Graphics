@@ -33,7 +33,7 @@ DEFINE_ARRAY_TYPE(Patch, PatchArr)
 static PatchArr g_patches;
 static float g_curveT = 0.0f;
 
-static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset, vec3 minPoint, vec3 maxPoint, bool *extremesValid) {
+static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
     int oldDim = (int)sqrtf((float)cp->size);
     if (oldDim * oldDim != (int)cp->size) {
         oldDim = 0;
@@ -43,11 +43,6 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset, vec3 mi
     Vec3Arr newPoints;
     vec3arr_init(&newPoints);
     vec3arr_reserve(&newPoints, newDim * newDim);
-
-    // Initialize extremes
-    float minHeight = 1e10f;
-    float maxHeight = -1e10f;
-    vec3 minPos, maxPos;
 
     for (int i = 0; i < newDim; ++i) {
         for (int j = 0; j < newDim; ++j) {
@@ -59,11 +54,9 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset, vec3 mi
             bool reused = false;
 
             if (i < oldDim && j < oldDim && oldDim > 0) {
-                // old point -> take over
                 height = cp->data[i * oldDim + j][1];
                 reused = true;
             } else if (oldDim > 0) {
-                // new point -> random height + neighbors
                 float sum = 0.0f;
                 int count = 0;
 
@@ -90,28 +83,12 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset, vec3 mi
             }
 
             p[1] = height;
-            
-            // Track min/max
-            if (height > maxHeight) {
-                maxHeight = height;
-                glm_vec3_copy(p, maxPos);
-            }
-            if (height < minHeight) {
-                minHeight = height;
-                glm_vec3_copy(p, minPos);
-            }
-            
             vec3arr_push(&newPoints, p);
         }
     }
 
     vec3arr_free(cp);
     *cp = newPoints;
-    
-    // Store extremes
-    glm_vec3_copy(minPos, minPoint);
-    glm_vec3_copy(maxPos, maxPoint);
-    *extremesValid = true;
 }
 
 static void updatePatchesFromControlPoints(Vec3Arr *cp, int dimension) {
@@ -134,10 +111,10 @@ static void updatePatchesFromControlPoints(Vec3Arr *cp, int dimension) {
     }
 }
 
-void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float textureTiling) {
+void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float textureTiling, vec3 minPoint, vec3 maxPoint,
+    bool *extremesValid, bool computeExtremes) {
     int patchCount = dimension - 3;
-    //int gridSize = patchCount * samplesPerPatch + 1;
-    int gridSize = (samples < 2) ? 2 : samples;
+    int gridSize   = (samples < 2) ? 2 : samples;
     int totalVerts = gridSize * gridSize;
 
     vec3 *positions = malloc(sizeof(vec3) * totalVerts);
@@ -145,11 +122,22 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
     vec2 *texcoords = malloc(sizeof(vec2) * totalVerts);
     vec3 n;
 
+    float maxX = cp->data[dimension-1][0];
+    float maxZ = cp->data[(dimension-1)*dimension][2];
+    float stepX = maxX / (patchCount * 3.0f);
+    float stepZ = maxZ / (patchCount * 3.0f);
+
+    float minH =  1e10f;
+    float maxH = -1e10f;
+    vec3 locMin = {0.0f, 0.0f, 0.0f};
+    vec3 locMax = {0.0f, 0.0f, 0.0f};
+
     for (int i = 0; i < gridSize; ++i) {
         float T_s = (float)i / (gridSize - 1); // global s
         float global_s = T_s * patchCount;
         int patch_s = (int)floor(global_s);
         if (patch_s >= patchCount) patch_s = patchCount - 1;
+        if (patch_s < 0) patch_s = 0;
         float local_s = global_s - patch_s;
 
         for (int j = 0; j < gridSize; ++j) {
@@ -157,18 +145,13 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
             float global_t = T_t * patchCount;
             int patch_t = (int)floor(global_t);
             if (patch_t >= patchCount) patch_t = patchCount - 1;
+            if (patch_t < 0) patch_t = 0;
             float local_t = global_t - patch_t;
 
             Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
             PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
 
-            // Index im Vertex-Array
             int idx = i * gridSize + j;
-
-            float maxX = cp->data[dimension-1][0];
-            float maxZ = cp->data[(dimension-1)*dimension][2];
-            float stepX = maxX / (patchCount * 3.0f);
-            float stepZ = maxZ / (patchCount * 3.0f);
 
             positions[idx][0] = (patch_t * 3 + local_t * 3) * stepX;
             positions[idx][2] = (patch_s * 3 + local_s * 3) * stepZ;
@@ -183,7 +166,26 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
             // TexCoords with tiling
             texcoords[idx][0] = T_s * textureTiling;
             texcoords[idx][1] = T_t * textureTiling;
+
+            // Extrempunkte auf Basis der INTERPOLIERTEN Fläche
+            if (computeExtremes) {
+                float h = positions[idx][1];
+                if (h > maxH) {
+                    maxH = h;
+                    glm_vec3_copy(positions[idx], locMax);
+                }
+                if (h < minH) {
+                    minH = h;
+                    glm_vec3_copy(positions[idx], locMin);
+                }
+            }
         }
+    }
+
+    if (computeExtremes) {
+        glm_vec3_copy(locMin, minPoint);
+        glm_vec3_copy(locMax, maxPoint);
+        *extremesValid = true;
     }
 
     model_updateSurface(positions, normals, texcoords, gridSize);
@@ -193,10 +195,11 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
 }
 
 
-static void rebuildSurface(Vec3Arr *cp, int dimension, int samples, float cpOffset, float textureTiling, vec3 minPoint, vec3 maxPoint, bool *extremesValid) {
-    updateControlPoints(cp, dimension, cpOffset, minPoint, maxPoint, extremesValid);
+static void rebuildSurface(Vec3Arr *cp, int dimension, int samples, float cpOffset, float textureTiling, vec3 minPoint,
+    vec3 maxPoint, bool *extremesValid) {
+    updateControlPoints(cp, dimension, cpOffset);
     updatePatchesFromControlPoints(cp, dimension);
-    generateSurfaceVertices(cp, samples, dimension, textureTiling);
+    generateSurfaceVertices(cp, samples, dimension, textureTiling, minPoint, maxPoint, extremesValid, true);
 }
 
 static void recalculateExtremes(Vec3Arr *cp, vec3 minPoint, vec3 maxPoint, bool *extremesValid) {
@@ -274,24 +277,20 @@ void logic_update(InputData *data) {
         data->surface.dimensionChanged = false;
         data->surface.resolutionChanged = false;
 
-        vec3 center;
-        glm_vec3_add(data->surface.controlPoints.data[0], 
-            data->surface.controlPoints.data[data->surface.controlPoints.size - 1], center);
-        glm_vec3_scale(center, 0.5f, center);
-        center[1] += 0.35f;
-        glm_vec3_copy(center, data->pointLight.center);
-
         // Update camera flight path when surface geometry changes
         logic_initCameraFlight(data);
     }
 
-    // Only sample new position if resolution changed
     if (data->surface.resolutionChanged) {
         generateSurfaceVertices(
             &data->surface.controlPoints,
-            data->surface.resolution, 
+            data->surface.resolution,
             data->surface.dimension,
-            data->surface.textureTiling
+            data->surface.textureTiling,
+            data->surface.minPoint,
+            data->surface.maxPoint,
+            &data->surface.extremesValid,
+            true
         );
         data->surface.resolutionChanged = false;
     }
@@ -359,7 +358,7 @@ static float evalSurfaceAt(int dimension, float T_s, float T_t) {
 void logic_initCameraFlight(InputData *data) {
     vec3 highest, lowest;
     
-    // Use cached extremes
+    // Use cached extremes (always valid at this point)
     glm_vec3_copy(data->surface.maxPoint, highest);
     glm_vec3_copy(data->surface.minPoint, lowest);
 
