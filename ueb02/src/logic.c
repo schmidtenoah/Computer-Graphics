@@ -19,7 +19,7 @@
 #include <fhwcg/fhwcg.h>
 
 #define RANDOM_HEIGHT(scale) ((((float)rand() / RAND_MAX) - 0.5f) * scale)
-#define CAMERA_HEIGHT_OFFSET 0.0f // Height that camera flight is above surface
+#define CAMERA_HEIGHT_OFFSET 0.2f // Height that camera flight is above surface
 
 static struct {
     vec4 coeffsX;
@@ -306,6 +306,13 @@ void logic_update(InputData *data) {
     if (data->cam.isFlying) {
         logic_updateCameraFlight(data, data->deltaTime);
     }
+
+    vec3 center;
+    glm_vec3_add(data->surface.controlPoints.data[0],
+                data->surface.controlPoints.data[data->surface.controlPoints.size - 1], center);
+    glm_vec3_scale(center, 0.5f, center);
+    center[1] += 0.35f;
+    glm_vec3_copy(center, data->pointLight.center);
 }
 
 void logic_printPolynomials(void) {
@@ -364,10 +371,7 @@ void logic_initCameraFlight(InputData *data) {
 
     // Set start and end points (with height offset)
     glm_vec3_copy(highest, data->cam.flight.p0);
-    data->cam.flight.p0[1] += CAMERA_HEIGHT_OFFSET;
-
     glm_vec3_copy(lowest, data->cam.flight.p3);
-    data->cam.flight.p3[1] += CAMERA_HEIGHT_OFFSET;
 
     // Calculate intermediate control points
     // Line is divided into 3 equal parts
