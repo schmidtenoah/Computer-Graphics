@@ -2,7 +2,8 @@
  * @file logic.c
  * @brief Implementation of game logic, physics and level management.
  *
- * Manages program state
+ * Manages program state including surface generation, patch calculations,
+ * and camera flight system.
  *
  * @authors Nikolaos Tsetsas, Noah Schmidt
  */
@@ -21,8 +22,17 @@ DEFINE_ARRAY_TYPE(Patch, PatchArr)
 
 ////////////////////////    LOCAL    ////////////////////////////
 
+/** Global array storing all polynomial patches for the surface */
 static PatchArr g_patches;
 
+/**
+ * Updates control points when dimension or offset changes.
+ * Preserves existing heights where possible and interpolates new points.
+ *
+ * @param cp Pointer to control points array to update
+ * @param newDim New dimension (grid size) for control points
+ * @param cpOffset Spacing offset between control points
+ */
 static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
     int oldDim = (int)sqrtf((float)cp->size);
     if (oldDim * oldDim != (int)cp->size) {
@@ -43,10 +53,12 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
             float height = 0.0f;
             bool reused = false;
 
+            // Reuse height from old grid if within bounds
             if (i < oldDim && j < oldDim && oldDim > 0) {
                 height = cp->data[i * oldDim + j][1];
                 reused = true;
             } else if (oldDim > 0) {
+                // Interpolate from neighboring old points
                 float sum = 0.0f;
                 int count = 0;
 
@@ -81,6 +93,14 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
     *cp = newPoints;
 }
 
+/**
+ * Generates polynomial patches from control points using B-spline basis.
+ * Creates (dimension-3)×(dimension-3) patches, each defined by a 4×4 grid
+ * of control points.
+ *
+ * @param cp Pointer to control points array
+ * @param dimension Grid dimension (number of control points per axis)
+ */
 static void updatePatchesFromControlPoints(Vec3Arr *cp, int dimension) {
     PatchArr_clear(&g_patches);
     Patch patch;
@@ -89,6 +109,7 @@ static void updatePatchesFromControlPoints(Vec3Arr *cp, int dimension) {
         for (int j = 0; j < dimension - 3; ++j) {
             mat4 geometryTerm = GLM_MAT4_ZERO_INIT;
 
+            // Extract 4×4 height values for this patch
             for (int u = 0; u < 4; ++u) {
                 for (int v = 0; v < 4; ++v) {
                     geometryTerm[v][u] = cp->data[(i + u) * dimension + (j + v)][1];
@@ -101,6 +122,20 @@ static void updatePatchesFromControlPoints(Vec3Arr *cp, int dimension) {
     }
 }
 
+/**
+ * Generates complete surface mesh from patches.
+ * Evaluates each patch at regular intervals to create a smooth surface.
+ * Computes positions, normals, and texture coordinates for all vertices.
+ *
+ * @param cp Control points array
+ * @param samples Number of samples per patch (grid resolution)
+ * @param dimension Control point grid dimension
+ * @param textureTiling Texture repeat factor
+ * @param minPoint Output: lowest point on surface
+ * @param maxPoint Output: highest point on surface
+ * @param extremesValid Output: whether extreme points are valid
+ * @param computeExtremes Whether to compute min/max points
+ */
 void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float textureTiling, vec3 minPoint, vec3 maxPoint,
     bool *extremesValid, bool computeExtremes) {
     int patchCount = dimension - 3;
@@ -122,6 +157,7 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
     vec3 locMin = {0.0f, 0.0f, 0.0f};
     vec3 locMax = {0.0f, 0.0f, 0.0f};
 
+    // Sample surface at regular grid intervals
     for (int i = 0; i < gridSize; ++i) {
         float T_s = (float)i / (gridSize - 1); // global s
         float global_s = T_s * patchCount;
@@ -143,11 +179,12 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
 
             int idx = i * gridSize + j;
 
+            // world position
             positions[idx][0] = (patch_t * 3 + local_t * 3) * stepX;
             positions[idx][2] = (patch_s * 3 + local_s * 3) * stepZ;
             positions[idx][1] = res.value;
 
-            // Normal
+            // normal from partial derivatives
             vec3 rs = { 0.0f, res.dsd, stepZ };
             vec3 rt = { stepX, res.dtd, 0.0f };
             glm_vec3_cross(rs, rt, n);
@@ -157,7 +194,7 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
             texcoords[idx][0] = T_s * textureTiling;
             texcoords[idx][1] = T_t * textureTiling;
 
-            // Extrempunkte auf Basis der INTERPOLIERTEN Fläche
+            // extreme points based on interpolated surface
             if (computeExtremes) {
                 float h = positions[idx][1];
                 if (h > maxH) {
@@ -184,7 +221,19 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
     free(texcoords);
 }
 
-
+/**
+ * Complete surface rebuild: updates control points, recalculates patches,
+ * and generates new surface mesh.
+ *
+ * @param cp Control points array
+ * @param dimension Control point grid dimension
+ * @param samples Surface sampling resolution
+ * @param cpOffset Control point spacing offset
+ * @param textureTiling Texture repeat factor
+ * @param minPoint Output: lowest point on surface
+ * @param maxPoint Output: highest point on surface
+ * @param extremesValid Output: whether extreme points are valid
+ */
 static void rebuildSurface(Vec3Arr *cp, int dimension, int samples, float cpOffset, float textureTiling, vec3 minPoint,
     vec3 maxPoint, bool *extremesValid) {
     updateControlPoints(cp, dimension, cpOffset);
@@ -192,6 +241,15 @@ static void rebuildSurface(Vec3Arr *cp, int dimension, int samples, float cpOffs
     generateSurfaceVertices(cp, samples, dimension, textureTiling, minPoint, maxPoint, extremesValid, true);
 }
 
+/**
+ * Recalculates minimum and maximum points based on control point heights.
+ * Used when control points are manually adjusted.
+ *
+ * @param cp Control points array
+ * @param minPoint Output: lowest control point
+ * @param maxPoint Output: highest control point
+ * @param extremesValid Output: set to true if calculation succeeded
+ */
 static void recalculateExtremes(Vec3Arr *cp, vec3 minPoint, vec3 maxPoint, bool *extremesValid) {
     if (cp->size == 0) {
         *extremesValid = false;
@@ -220,6 +278,12 @@ static void recalculateExtremes(Vec3Arr *cp, vec3 minPoint, vec3 maxPoint, bool 
     *extremesValid = true;
 }
 
+/**
+ * Checks for control point selection input and updates heights accordingly.
+ * Handles up/down arrow key presses to adjust selected control point height.
+ *
+ * @param data input data
+ */
 static void checkSelectionState(InputData *data) {
     bool heightChanged = false;
 
@@ -244,6 +308,37 @@ static void checkSelectionState(InputData *data) {
             &data->surface.extremesValid
         );
     }
+}
+
+/**
+ * Evaluates surface height at specific normalized coordinates.
+ * Converts global (T_s, T_t) coordinates to local patch coordinates
+ * and evaluates the corresponding polynomial.
+ *
+ * @param dimension Control point grid dimension
+ * @param T_s Normalized s coordinate [0,1]
+ * @param T_t Normalized t coordinate [0,1]
+ * @return Height value at specified position
+ */
+static float evalSurfaceAt(int dimension, float T_s, float T_t) {
+    int patchCount = dimension - 3;
+
+    float global_s = T_s * patchCount;
+    int patch_s = (int)floor(global_s);
+    if (patch_s >= patchCount) patch_s = patchCount - 1;
+    if (patch_s < 0) patch_s = 0;
+    float local_s = global_s - patch_s;
+
+    float global_t = T_t * patchCount;
+    int patch_t = (int)floor(global_t);
+    if (patch_t >= patchCount) patch_t = patchCount - 1;
+    if (patch_t < 0) patch_t = 0;
+    float local_t = global_t - patch_t;
+
+    Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
+    PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
+
+    return res.value;
 }
 
 ////////////////////////    PUBLIC    ////////////////////////////
@@ -328,28 +423,6 @@ void logic_init(void) {
 void logic_cleanup(void) {
     PatchArr_free(&g_patches);
     vec3arr_free(&getInputData()->surface.controlPoints);
-}
-
-// Evaluate surface at specific global T_s and T_t coordinates
-static float evalSurfaceAt(int dimension, float T_s, float T_t) {
-    int patchCount = dimension - 3;
-
-    float global_s = T_s * patchCount;
-    int patch_s = (int)floor(global_s);
-    if (patch_s >= patchCount) patch_s = patchCount - 1;
-    if (patch_s < 0) patch_s = 0;
-    float local_s = global_s - patch_s;
-
-    float global_t = T_t * patchCount;
-    int patch_t = (int)floor(global_t);
-    if (patch_t >= patchCount) patch_t = patchCount - 1;
-    if (patch_t < 0) patch_t = 0;
-    float local_t = global_t - patch_t;
-
-    Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
-    PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
-
-    return res.value;
 }
 
 void logic_initCameraFlight(InputData *data) {
