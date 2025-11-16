@@ -1,19 +1,12 @@
 /**
  * @file utils.c
- * @brief Implementation of mathematical utility functions for curve rendering and collision detection.
+ * @brief Implementation of mathematical utility functions for surface and curve operations.
  *
- * Implements curve evaluation using matrix-based approach:
- * - B-spline curves: Smooth curves passing near control points with C2 continuity
- * - Bezier curves: Curves with endpoints at first/last control points
+ * Implements B-spline surface evaluation
  *
- * The general form is: P(t) = at³ + bt² + ct + d, where coefficients are computed
- * from control points using matrices.
- *
- * Additional utilities include:
- * - Convex hull calc
- * - Tangent calc
- * - Normal vector calc
- * - Collision detection
+ * Additional utilities:
+ * - Height functions for surface initialization
+ * - Cubic Bezier curve evaluation for camera path
  *
  * @authors Nikolaos Tsetsas, Noah Schmidt
  */
@@ -27,6 +20,10 @@
 
 typedef void (*HeightFunc)(vec3 *cp, int x, int z, int dimension);
 
+/**
+ * B-spline basis matrix (transposed).
+ * Used for B-spline patches
+ */
 static mat4 splineMatrixTransposed = {
         { -1,  3, -3,  1 },
         {  3, -6,  3,  0 },
@@ -34,6 +31,10 @@ static mat4 splineMatrixTransposed = {
         {  1,  4,  1,  0 }
 };
 
+/**
+ * B-spline basis matrix.
+ * Defines the B-spline blending functions
+ */
 static mat4 splineMatrix = {
         { -1,  3, -3,  1 },
         {  3, -6,  0,  4 },
@@ -41,6 +42,14 @@ static mat4 splineMatrix = {
         {  1,  0,  0,  0 }
 };
 
+/**
+ * Height function: Flat plane at y=0.
+ *
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
 static void height_flat(vec3 *cp, int x, int z, int dimension) {
     NK_UNUSED(dimension);
     NK_UNUSED(x);
@@ -49,6 +58,15 @@ static void height_flat(vec3 *cp, int x, int z, int dimension) {
     (*cp)[1] = 0.0f;
 }
 
+/**
+ * Height function: Sinus pattern.
+ * Creates a wave surface using sin(x)·cos(z).
+ *
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
 static void height_sin(vec3 *cp, int x, int z, int dimension) {
     NK_UNUSED(dimension);
 
@@ -56,6 +74,15 @@ static void height_sin(vec3 *cp, int x, int z, int dimension) {
     (*cp)[1] = sinf(x * freq) * cosf(z * freq) * 2.0f;
 }
 
+/**
+ * Height function: Cosine pattern.
+ * Creates rolling hills using cos(x) + sin(z).
+ *
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
 static void height_cos(vec3 *cp, int x, int z, int dimension) {
     NK_UNUSED(dimension);
 
@@ -63,6 +90,15 @@ static void height_cos(vec3 *cp, int x, int z, int dimension) {
     (*cp)[1] = cosf(x * freq) + sinf(z * freq);
 }
 
+/**
+ * Height function: Gauss bell curve.
+ * Creates a smooth peak at the center of the surface.
+ *
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
 static void height_gauss(vec3 *cp, int x, int z, int dimension) {
     float cx = (dimension - 1) / 2.0f;
     float cz = (dimension - 1) / 2.0f;
@@ -75,6 +111,15 @@ static void height_gauss(vec3 *cp, int x, int z, int dimension) {
     (*cp)[1] = expf(-dist2 / (2.0f * sigma * sigma)) * 5.0f;
 }
 
+/**
+ * Height function: Random noise.
+ * Generates random heights for a rough, irregular surface.
+ *
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
 static void height_random(vec3 *cp, int x, int z, int dimension) {
     NK_UNUSED(dimension);
     NK_UNUSED(x);
@@ -84,6 +129,15 @@ static void height_random(vec3 *cp, int x, int z, int dimension) {
     (*cp)[1] = r;
 }
 
+/**
+ * Height function: hill.
+ * Creates a smooth hill that rises from edges to center
+ *
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
 static void height_hill(vec3 *cp, int x, int z, int dimension) {
     float cx = (dimension - 1) / 2.0f;
     float cz = (dimension - 1) / 2.0f;
@@ -97,12 +151,24 @@ static void height_hill(vec3 *cp, int x, int z, int dimension) {
     (*cp)[1] = height * 5.0f;
 }
 
+/**
+ * Height function: Exponential.
+ * Creates a sharp peak at origin with exponential falloff.
+ *
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
 static void height_exp(vec3 *cp, int x, int z, int dimension) {
     NK_UNUSED(dimension);
     float exp = expf(-(x * x + z * z) / 100.0f);
     (*cp)[1] = exp * 10.0f;
 }
 
+/**
+ * Array of height function pointers, indexed by HeightFuncType enum.
+ */
 static HeightFunc g_heightFuncs[HF_COUNT] = {
     height_flat,   // HF_FLAT
     height_sin,    // HF_SIN
