@@ -124,6 +124,50 @@ static void updatePatchesFromControlPoints(Vec3Arr *cp, int dimension) {
 }
 
 /**
+ * Computes patch coordinates
+ *
+ * @param T            Normalized global coordinate in [0,1]
+ * @param patchCount   Number of patches along one dimension
+ * @param patchIdx     patch index
+ * @param local        local coordinate inside the patch
+ */
+static void compute_patch_coords(float T, int patchCount, int *patchIdx, float *local)
+{
+    float global = T * patchCount;
+    int patch    = (int)floorf(global);
+    if (patch >= patchCount) patch = patchCount - 1;
+    if (patch < 0)           patch = 0;
+
+    *patchIdx = patch;
+    *local    = global - patch;
+}
+
+/**
+ * Updates the currently known minimum and maximum surface heights.
+ *
+ * @param h        Height value of the current sample
+ * @param position Position for this sample
+ * @param minH     current minimum height
+ * @param maxH     current maximum height
+ * @param locMin   position of minimum point
+ * @param locMax   position of maximum point
+ */
+static void update_extremes(float h,
+                            vec3 position,
+                            float *minH, float *maxH,
+                            vec3 locMin, vec3 locMax)
+{
+    if (h > *maxH) {
+        *maxH = h;
+        glm_vec3_copy(position, locMax);
+    }
+    if (h < *minH) {
+        *minH = h;
+        glm_vec3_copy(position, locMin);
+    }
+}
+
+/**
  * Generates complete surface mesh from patches.
  * Evaluates each patch at regular intervals to create a smooth surface.
  * Computes positions, normals, and texture coordinates for all vertices.
@@ -161,19 +205,17 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
     // Sample surface at regular grid intervals
     for (int i = 0; i < gridSize; ++i) {
         float T_s = (float)i / (gridSize - 1); // global s
-        float global_s = T_s * patchCount;
-        int patch_s = (int)floor(global_s);
-        if (patch_s >= patchCount) patch_s = patchCount - 1;
-        if (patch_s < 0) patch_s = 0;
-        float local_s = global_s - patch_s;
+        int patch_s;
+        float local_s;
+
+        compute_patch_coords(T_s, patchCount, &patch_s, &local_s);
 
         for (int j = 0; j < gridSize; ++j) {
             float T_t = (float)j / (gridSize - 1); // global t
-            float global_t = T_t * patchCount;
-            int patch_t = (int)floor(global_t);
-            if (patch_t >= patchCount) patch_t = patchCount - 1;
-            if (patch_t < 0) patch_t = 0;
-            float local_t = global_t - patch_t;
+            int patch_t;
+            float local_t;
+
+            compute_patch_coords(T_t, patchCount, &patch_t, &local_t);
 
             Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
             PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
@@ -196,16 +238,11 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
             texcoords[idx][1] = T_t * textureTiling;
 
             // extreme points based on interpolated surface
+            // extremes
             if (computeExtremes) {
-                float h = positions[idx][1];
-                if (h > maxH) {
-                    maxH = h;
-                    glm_vec3_copy(positions[idx], locMax);
-                }
-                if (h < minH) {
-                    minH = h;
-                    glm_vec3_copy(positions[idx], locMin);
-                }
+                update_extremes(res.value, positions[idx],
+                                &minH, &maxH,
+                                locMin, locMax);
             }
         }
     }
