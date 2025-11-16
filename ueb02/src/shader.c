@@ -35,6 +35,13 @@ static void cleanup(Shader *s) {
     }
 }
 
+/**
+ * Transforms the given vec3 from world to view space based on 
+ * the current Stack.
+ * @param vec The vec3 to be transformed.
+ * @param dest The output for the view space vec3.
+ * @param isPos If the given vec3 is a position or a direction.
+ */
 static void worldToView(vec3 vec, vec3 dest, bool isPos) {
     mat4 vm;
     scene_getMV(vm);

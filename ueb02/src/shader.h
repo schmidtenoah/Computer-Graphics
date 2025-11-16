@@ -45,12 +45,32 @@ void shader_setColor(vec3 color);
  */
 void shader_setNormals(void);
 
+/**
+ * Sets the current Stack MVP-Matrix for the Simple-Shader.
+ */
 void shader_setSimpleMVP(void);
 
+/**
+ * Sets which texture to use for the Model-Shader.
+ * @param textureId The id to use from now on.
+ * @param useTexture If the texture should be used.
+ */
 void shader_setTexture(GLuint textureId, bool useTexture);
 
+/**
+ * Sets the camera position for the Model-Shader.
+ * @param camPosWS The camera world position.
+ */
 void shader_setCamPos(vec3 camPosWS);
 
+/**
+ * Sets all point light attributes for the Model-Shader.
+ * @param color The color of the light.
+ * @param posWS The camera position in world space.
+ * @param falloff The attenuation falloff values.
+ * @param enabled If the light is on or off.
+ * @param ambientFactor How much the lights ambient takes effect. 
+ */
 void shader_setPointLight(vec3 color, vec3 posWS, vec3 falloff, bool enabled, float ambientFactor);
 
 #endif // SHADER_H

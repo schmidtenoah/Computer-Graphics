@@ -46,12 +46,6 @@ typedef struct {
     } cam;
 
     struct {
-        int button;
-        int action;
-        float xPos, yPos;
-    } mouse;
-
-    struct {
         int dimension;
         int resolution;
         float controlPointOffset;
@@ -75,17 +69,6 @@ typedef struct {
         int skipCnt;
         bool pressingUp, pressingDown;
     } selection;
-
-    struct {
-        float width;
-        float resolution;
-        bool drawPolygon;
-        bool drawConvexHull;
-        bool showNormals;
-        int buttonCount;
-        bool resolutionChanged;
-        bool buttonsChanged;
-    } curve;
 
     struct {
         vec3 posWS;

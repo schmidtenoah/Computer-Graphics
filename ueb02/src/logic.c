@@ -17,6 +17,7 @@
 
 #define RANDOM_HEIGHT(scale) ((((float)rand() / RAND_MAX) - 0.5f) * scale)
 #define CAMERA_HEIGHT_OFFSET 0.2f // Offset for 2nd and 3rd Ctrl.point of Bezier
+#define LIGHT_OFFSET_Y 0.35f
 
 DEFINE_ARRAY_TYPE(Patch, PatchArr)
 
@@ -362,6 +363,13 @@ void logic_update(InputData *data) {
         data->surface.dimensionChanged = false;
         data->surface.resolutionChanged = false;
 
+        vec3 center;
+        glm_vec3_add(data->surface.controlPoints.data[0],
+                    data->surface.controlPoints.data[data->surface.controlPoints.size - 1], center);
+        glm_vec3_scale(center, 0.5f, center);
+        center[1] += LIGHT_OFFSET_Y;
+        glm_vec3_copy(center, data->pointLight.center);
+
         // Update camera flight path when surface geometry changes
         logic_initCameraFlight(data);
     }
@@ -391,13 +399,6 @@ void logic_update(InputData *data) {
     if (data->cam.isFlying) {
         logic_updateCameraFlight(data, data->deltaTime);
     }
-
-    vec3 center;
-    glm_vec3_add(data->surface.controlPoints.data[0],
-                data->surface.controlPoints.data[data->surface.controlPoints.size - 1], center);
-    glm_vec3_scale(center, 0.5f, center);
-    center[1] += 0.35f;
-    glm_vec3_copy(center, data->pointLight.center);
 }
 
 void logic_printPolynomials(void) {

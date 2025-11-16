@@ -28,9 +28,6 @@ static Mesh *g_models[MODEL_MESH_COUNT];
 /** Texture IDs for surface textures */
 static GLuint g_textureIds[NUM_TEXTURES] = {0};
 
-/** VAO and VBO for curve */
-static GLuint g_curveVAO = 0, g_curveVBO = 0;
-
 static struct {
     GLuint vao, vbo, ebo;
     size_t vertexBufferSize;
@@ -54,6 +51,10 @@ static void model_initSphere(void) {
     g_models[MODEL_SPHERE] = mesh_createSphere(SPHERE_NUM_SLICES, SPHERE_NUM_STACKS);
 }
 
+/**
+ * Initializes the vao, vbo and ebo for the surface mesh.
+ * VBO and EBO are supposed to change dynamically.
+ */
 static void model_initSurface(void) {
     glGenVertexArrays(1, &g_surface.vao);
     glGenBuffers(1, &g_surface.vbo);
@@ -173,21 +174,6 @@ void model_drawSurface(bool drawNormals, mat4 *viewMat, mat4 *modelviewMat) {
     if (drawNormals) {
         shader_setNormals();
         glDrawElements(GL_TRIANGLES, g_surface.numIndices, GL_UNSIGNED_INT, 0);
-    }
-
-    glBindVertexArray(0);
-}
-
-void model_drawCurve(int numVertices, float lineWidth) {
-    glBindVertexArray(g_curveVAO);
-
-    //shader_setMVP();
-    glLineWidth(lineWidth);
-    glDrawArrays(GL_LINE_STRIP, 0, numVertices);
-
-    if (getInputData()->curve.showNormals) {
-        shader_setNormals();
-        glDrawArrays(GL_POINTS, 0, numVertices);
     }
 
     glBindVertexArray(0);

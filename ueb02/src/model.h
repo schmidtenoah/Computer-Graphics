@@ -27,7 +27,6 @@ typedef enum {
     MODEL_MESH_COUNT,
 
     // stored with VAO/VBO
-    MODEL_CURVE,
     MODEL_SURFACE
 } ModelType;
 
@@ -67,29 +66,27 @@ GLuint model_getTextureId(int index);
  */
 void model_draw(ModelType model, bool drawNormals, mat4 *viewMat, mat4 *modelViewMat);
 
+/**
+ * Draws the given model via the Simple-Shader (only color).
+ * @param model The type of the model to draw.
+ */
 void model_drawSimple(ModelType model);
 
 /**
- * Draws the curve as a line strip.
- * Also renders normal vectors if enabled in settings.
- *
- * @param numVertices Number of vertices in the curve
- * @param lineWidth Width of the curve line
+ * Draws the Surface via the Model-Shader.
+ * @param drawNormals If the Normals of the surface should be drawn.
+ * @param viewMat The View-Matrix for the Model-Shader.
+ * @param modelviewMat The Model-View-Matrix for the Model-Shader.
  */
-void model_drawCurve(int numVertices, float lineWidth);
-
 void model_drawSurface(bool drawNormals, mat4 *viewMat, mat4 *modelviewMat);
 
-void model_updateSurface(vec3 *vertices, vec3 *normals, vec2 *texcoords, int dim);
-
 /**
- * Updates the curve vertex buffer with new positions and normals
- * for dynamic rendering.
- *
- * @param vertices 2D Vector of vertex positions
- * @param normalVertices 3D Vector of 3D normal vectors
- * @param numVertices Number of vertices to update
+ * Dynamically updates the surface mesh based on the given main vertices.
+ * @param vertices The main vertices of the surface (no indice vertices).
+ * @param normals The normals belonging to the vertices.
+ * @param texcoords The texture coordinates belonging to the vertices.
+ * @param dim The dimension of the 2D-Surface (#vertices == dim^2).
  */
-void model_updateCurve(vec2 *vertices, vec3 *normalVertices, int numVertices);
+void model_updateSurface(vec3 *vertices, vec3 *normals, vec2 *texcoords, int dim);
 
 #endif // MODEL_H

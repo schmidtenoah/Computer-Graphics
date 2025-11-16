@@ -75,8 +75,7 @@ static void gui_renderHelp(ProgContext ctx, InputData* input) {
  * @param ctx Program context
  * @param input Pointer to input data containing GUI state
  */
-static void gui_renderMenu(ProgContext ctx, InputData* input)
-{
+static void gui_renderMenu(ProgContext ctx, InputData* input) {
     if (!(input->showMenu)) {
         return;
     }

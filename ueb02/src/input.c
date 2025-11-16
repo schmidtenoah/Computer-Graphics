@@ -30,7 +30,7 @@
 
 ////////////////////////    LOCAL    ////////////////////////////
 
-/** Global application state containing all input, settings, and game data */
+/** Global application state containing all input, settings. */
 static InputData g_input = { 0 };
 
 /**
@@ -88,17 +88,6 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             data->showNormals = !data->showNormals;
             break;
 
-        case GLFW_KEY_KP_ADD:
-            data->surface.resolution = (int) glm_clamp(data->curve.resolution - 1, 2, 100);
-            data->surface.resolutionChanged = true;
-            break;
-
-        case GLFW_KEY_KP_SUBTRACT:
-        case GLFW_KEY_MINUS:
-            data->surface.resolution = (int) glm_clamp(data->curve.resolution + 1, 2, 100);
-            data->surface.resolutionChanged = true;
-            break;
-
         case GLFW_KEY_1:
         case GLFW_KEY_2:
         case GLFW_KEY_3:
@@ -122,7 +111,7 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
         case GLFW_KEY_C:
             if (!data->cam.isFlying) {
                 data->cam.isFlying = true;
-                data->cam.flight.t = 0.01f;
+                data->cam.flight.t = 0.000001f;
             }
             break;
 
@@ -170,9 +159,6 @@ static void input_mouseButtonEvent(ProgContext ctx, int button, int action, int 
     NK_UNUSED(ctx);
 
     InputData* data = getInputData();
-    data->mouse.button = button;
-    data->mouse.action = action; // TODO: noch nötig?
-
     camera_mouseButtonCallback(data->cam.data, button, action);
 }
 
@@ -186,9 +172,6 @@ static void input_mouseButtonEvent(ProgContext ctx, int button, int action, int 
  */
 static void input_mouseMoveEvent(ProgContext ctx, double x, double y) {
     InputData* data = getInputData();
-    data->mouse.xPos = (float) x;
-    data->mouse.yPos = (float) y; // TODO: noch nötig?
-
     camera_mouseMoveCallback(data->cam.data, ctx, (float) x, (float) y);
 }
 
@@ -201,16 +184,6 @@ void input_init(ProgContext ctx) {
     g_input.showMenu = true;
     g_input.showWireframe = false;
     g_input.paused = false;
-    g_input.mouse.button = GLFW_KEY_UNKNOWN;
-    g_input.mouse.xPos = 0;
-    g_input.mouse.yPos = 0;
-    g_input.curve.resolution = 0.02f;
-    g_input.curve.width = 2.0f;
-    g_input.curve.drawPolygon = false;
-    g_input.curve.drawConvexHull = false;
-    g_input.curve.showNormals = false;
-    g_input.curve.buttonsChanged = true;
-    g_input.curve.resolutionChanged = true;
     g_input.showNormals = false;
 
     g_input.cam.data = camera_createCamera(
@@ -222,6 +195,7 @@ void input_init(ProgContext ctx) {
     camera_getFront(g_input.cam.data, g_input.cam.dir);
     g_input.cam.isFlying = false;
     g_input.cam.flight.duration = 1.0f;
+    g_input.cam.flight.t = 1.0f;
 
     g_input.surface.dimension = SURFACE_START_DIM;
     g_input.surface.resolution = SURFACE_START_DIM;

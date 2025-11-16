@@ -28,12 +28,24 @@
 /** Colors*/
 #define SELECTED_COLOR VEC3(1, 0, 0)
 
+/**
+ * Rendering viewport and projection data.
+ * Contains screen resolution and projection bounds.
+ */
+typedef struct {
+    ivec2 screenRes;
+    float aspect;
+    float left, right, top, bottom;
+} RenderingData;
+
 ////////////////////////    LOCAL    ////////////////////////////
 
 /** Global rendering data (viewport, projection bounds, screen resolution) */
 static RenderingData g_renderingData;
 
-
+/**
+ * Sets the View-Matrix based on the current active camera.
+ */
 static void updateCamera(InputData *data) {
     if (!data->cam.isFlying) {
         camera_getPosition(data->cam.data, data->cam.pos);
@@ -44,6 +56,10 @@ static void updateCamera(InputData *data) {
     shader_setCamPos(data->cam.pos);
 }
 
+/**
+ * Updates the point light position and sends all relevant attributes to the shader.
+ * @param data The InputData.
+ */
 static void updatePointLight(InputData *data) {
     utils_rotateAroundYAxis(
         &data->pointLight.posWS,

@@ -20,6 +20,10 @@
 
 ////////////////////////    LOCAL    ////////////////////////////
 
+/**
+ * Initializes all modules.
+ * @param ctx The Program Context.
+ */
 static void init(ProgContext ctx) {
     input_init(ctx);
     input_registerCallbacks(ctx);
@@ -30,6 +34,10 @@ static void init(ProgContext ctx) {
     rendering_resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 }
 
+/**
+ * Cleans all modules.
+ * @param ctx The Program Context.
+ */
 static void cleanup(ProgContext ctx) {
     gui_cleanup(ctx);
     model_cleanup();

@@ -16,16 +16,6 @@
 
 #include <fhwcg/fhwcg.h>
 
-/**
- * Rendering viewport and projection data.
- * Contains screen resolution and projection bounds.
- */
-typedef struct {
-    ivec2 screenRes;
-    float aspect;
-    float left, right, top, bottom;
-} RenderingData;
-
 //PUBLIC
 
 /**
@@ -34,14 +24,6 @@ typedef struct {
  * creates initial control point buttons.
  */
 void rendering_init(void);
-
-/**
- * Initializes control point buttons for the current level.
- * Creates btnCnt draggable buttons.
- *
- * @param btnCnt Number of control point buttons of curve
- */
-void initButtons(int btnCnt);
 
 /**
  * Renders the entire scene (every frame).

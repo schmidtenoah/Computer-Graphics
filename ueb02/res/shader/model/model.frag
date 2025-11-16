@@ -199,6 +199,11 @@ HeightData getHeightData(float height) {
         return HEIGHTDATA_HIGHEST;
 }
 
+/**
+ * Model Fragment Shader Main.
+ * Extracts the height data based on the fragment world y position, 
+ * then applies shading.
+ */
 void main(void) {
     HeightData data = getHeightData(fs_in.PositionWS.y);
 

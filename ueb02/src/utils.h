@@ -86,12 +86,20 @@ typedef struct {
     float duration;       // total duration in seconds
 } BezierCameraPath;
 
+/**
+ * Initializes a vec3 array.
+ * @param arr Pointer to the vec3 array.
+ */
 static inline void vec3arr_init(Vec3Arr *arr) {
     arr->size = 0;
     arr->capacity = 0;
     arr->data = NULL;
 }
 
+/**
+ * Frees a vec3 array.
+ * @param arr Pointer to the vec3 array.
+ */
 static inline void vec3arr_free(Vec3Arr *arr) {
     free(arr->data);
     arr->data = NULL;
@@ -99,10 +107,21 @@ static inline void vec3arr_free(Vec3Arr *arr) {
     arr->capacity = 0;
 }
 
+/**
+ * Resets a vec3 array.
+ * @warning Does not free the elements.
+ * @param arr Pointer to the vec3 array.
+ */
 static inline void vec3arr_clear(Vec3Arr *arr) {
     arr->size = 0;
 }
 
+/**
+ * Reserves the given amount for elements of a vec3 array.
+ * Does not reduce the current capacity!
+ * @param arr Pointer to the vec3 array.
+ * @param min_capacity The new capacity of the array.
+ */
 static inline void vec3arr_reserve(Vec3Arr *arr, size_t min_capacity) {
     if (arr->capacity < min_capacity) {
         size_t new_cap = arr->capacity ? arr->capacity * 2 : 8;
@@ -119,6 +138,11 @@ static inline void vec3arr_reserve(Vec3Arr *arr, size_t min_capacity) {
     }
 }
 
+/**
+ * Adds a new element to the vec3 array.
+ * @param arr Pointer to the vec3 array.
+ * @param value The new Element of the array.
+ */
 static inline void vec3arr_push(Vec3Arr *arr, vec3 value) {
     if (arr->size >= arr->capacity) {
         vec3arr_reserve(arr, arr->size + 1);
@@ -126,16 +150,46 @@ static inline void vec3arr_push(Vec3Arr *arr, vec3 value) {
     glm_vec3_copy(value, arr->data[arr->size++]);
 }
 
+/**
+ * Applies the given heigth modification to all control points of the surface.
+ * @param funcType The Type of the Height-Function. 
+ */
 void utils_applyHeightFunction(HeightFuncType funcType);
 
+/**
+ * Calculates the polynomial for the given control points and 
+ * saves it in the given patch.
+ * Uses the 2D B-Spline interpolation (M * G * M^T).
+ * @param p Pointer to a Patch where the result is saved.
+ * @param geometryTerm Pointer to a Patch where the result is saved.
+ */
 void utils_calculatePolynomialPatch(Patch *p, mat4 geometryTerm);
 
+/**
+ * Evaluates the given patch at a specific local t and s.
+ * Calculates the 2D B-Spline for t,s and both partial derivatives.
+ * => (s^T * C * t) where C := Patch (M * G * M^T).
+ * @param p Pointer to the Polynomial Patch.
+ * @param s Local s value.
+ * @param t Local t value.
+ * @returns the 2D B-Spline for t,s and both partial derivatives.
+ */
 PatchEvalResult utils_evalPatchLocal(Patch *p, float s, float t);
 
-// Bezier curve evaluation for camera flight
+/**
+ * Bezier Curve evaluation for a vec3.
+ * @param p0, p1, p2, p3 The Control Points for the bezier interpolation.
+ * @param t The local t value for the sample.
+ * @param out The result of the sample.
+ */
 void utils_evalBezier3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3 out);
 
-// Bezier curve tangent for camera direction
+/**
+ * Bezier Curve tangent evaluation for a vec3.
+ * @param p0, p1, p2, p3 The Control Points for the bezier interpolation.
+ * @param t The local t value for the sample.
+ * @param out The tangent at the given sample position.
+ */
 void utils_evalBezierTangent3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3 out);
 
 /**

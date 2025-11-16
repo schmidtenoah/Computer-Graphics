@@ -15,6 +15,11 @@ out VS_OUT {
     vec3 PositionVS;
 } vs_out;
 
+/**
+ * Model Vertex Shader Main.
+ * Calculates the model and view space position of the vertex and
+ * transforms the normal in the view space.
+ */
 void main(void) {
     mat4 viewInverse = inverse(u_viewMatrix);
     mat4 model = viewInverse * u_modelviewMatrix;
