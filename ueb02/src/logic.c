@@ -386,6 +386,7 @@ void logic_update(InputData *data) {
             true
         );
         data->surface.resolutionChanged = false;
+        logic_initCameraFlight(data);
     }
 
     // Initialize camera flight when started
