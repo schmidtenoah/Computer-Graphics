@@ -33,7 +33,6 @@ typedef struct {
     bool showNormals;
     bool paused;
 
-    // seperate pos and dir because we need to manually change the camera
     struct {
         Camera *data;
         vec3 pos, dir;

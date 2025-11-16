@@ -2,11 +2,7 @@
  * @file logic.c
  * @brief Implementation of game logic, physics and level management.
  *
- * Manages all game mechanics including:
- * - Airplane movement along the curve with speed along curve slope.
- * - Collision detection (stars, clouds, airplane vertices)
- * - Level progression and win/lose conditions
- * - Six pre-defined levels with increasing difficulty
+ * Manages program state
  *
  * @authors Nikolaos Tsetsas, Noah Schmidt
  */
@@ -19,19 +15,13 @@
 #include <fhwcg/fhwcg.h>
 
 #define RANDOM_HEIGHT(scale) ((((float)rand() / RAND_MAX) - 0.5f) * scale)
-#define CAMERA_HEIGHT_OFFSET 0.2f // Height that camera flight is above surface
-
-static struct {
-    vec4 coeffsX;
-    vec4 coeffsY;
-} bezierSegment;
+#define CAMERA_HEIGHT_OFFSET 0.2f // Offset for 2nd and 3rd Ctrl.point of Bezier
 
 DEFINE_ARRAY_TYPE(Patch, PatchArr)
 
 ////////////////////////    LOCAL    ////////////////////////////
 
 static PatchArr g_patches;
-static float g_curveT = 0.0f;
 
 static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
     int oldDim = (int)sqrtf((float)cp->size);

@@ -2,13 +2,7 @@
  * @file logic.h
  * @brief Game logic and level management
  *
- * Functions for game state, level progression and airplane "physics".
- * Handles collision detection, level loading and win/lose conditions.
- *
- * The game consists of 6 levels with varying difficulty:
- * - Collectible stars (must collect all to win)
- * - Cloud obstacles (collision causes level restart)
- * - Airplane follows the curve with slope-dependent speed
+ * Functions for program state, including patch and camera logic.
  *
  * @authors Nikolaos Tsetsas, Noah Schmidt
  */
