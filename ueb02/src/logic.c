@@ -280,71 +280,21 @@ static void rebuildSurface(Vec3Arr *cp, int dimension, int samples, float cpOffs
 }
 
 /**
- * Recalculates minimum and maximum points based on control point heights.
- * Used when control points are manually adjusted.
- *
- * @param cp Control points array
- * @param minPoint Output: lowest control point
- * @param maxPoint Output: highest control point
- * @param extremesValid Output: set to true if calculation succeeded
- */
-static void recalculateExtremes(Vec3Arr *cp, vec3 minPoint, vec3 maxPoint, bool *extremesValid) {
-    if (cp->size == 0) {
-        *extremesValid = false;
-        return;
-    }
-
-    float minHeight = 1e10f;
-    float maxHeight = -1e10f;
-    vec3 minPos, maxPos;
-
-    for (size_t i = 0; i < cp->size; ++i) {
-        float height = cp->data[i][1];
-        
-        if (height > maxHeight) {
-            maxHeight = height;
-            glm_vec3_copy(cp->data[i], maxPos);
-        }
-        if (height < minHeight) {
-            minHeight = height;
-            glm_vec3_copy(cp->data[i], minPos);
-        }
-    }
-
-    glm_vec3_copy(minPos, minPoint);
-    glm_vec3_copy(maxPos, maxPoint);
-    *extremesValid = true;
-}
-
-/**
  * Checks for control point selection input and updates heights accordingly.
  * Handles up/down arrow key presses to adjust selected control point height.
  *
  * @param data input data
  */
 static void checkSelectionState(InputData *data) {
-    bool heightChanged = false;
 
     if (data->selection.pressingUp) {
         data->surface.controlPoints.data[data->selection.selectedCp][1] += data->selection.selectedYChange;
         data->surface.dimensionChanged = true;
-        heightChanged = true;
     }
 
     if (data->selection.pressingDown) {
         data->surface.controlPoints.data[data->selection.selectedCp][1] -= data->selection.selectedYChange;
         data->surface.dimensionChanged = true;
-        heightChanged = true;
-    }
-
-    // Recalculate extremes if height was manually changed
-    if (heightChanged) {
-        recalculateExtremes(
-            &data->surface.controlPoints,
-            data->surface.minPoint,
-            data->surface.maxPoint,
-            &data->surface.extremesValid
-        );
     }
 }
 
