@@ -417,15 +417,14 @@ void logic_cleanup(void) {
 void logic_initCameraFlight(InputData *data) {
     vec3 highest, lowest;
     
-    // Use cached extremes (always valid at this point)
+    // Use cached extremes
     glm_vec3_copy(data->surface.maxPoint, highest);
     glm_vec3_copy(data->surface.minPoint, lowest);
 
-    // Set start and end points (with height offset)
+    // Set start and end points
     glm_vec3_copy(highest, data->cam.flight.p0);
     glm_vec3_copy(lowest, data->cam.flight.p3);
 
-    // Calculate intermediate control points
     // Line is divided into 3 equal parts
     vec3 line;
     glm_vec3_sub(data->cam.flight.p3, data->cam.flight.p0, line);
