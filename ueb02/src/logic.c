@@ -437,10 +437,11 @@ void logic_initCameraFlight(InputData *data) {
     data->cam.flight.p2[0] = data->cam.flight.p0[0] + 2.0f * line[0] / 3.0f;
     data->cam.flight.p2[2] = data->cam.flight.p0[2] + 2.0f * line[2] / 3.0f;
 
-    // Calculate y coordinates from surface at those x,z positions
+    // Get dimensions
     float maxX = data->surface.controlPoints.data[data->surface.dimension-1][0];
     float maxZ = data->surface.controlPoints.data[(data->surface.dimension-1)*data->surface.dimension][2];
 
+    // Calculate y coordinates from surface at those x,z positions
     // For P1: convert world coords to normalized surface coords, then evaluate
     float T_s1 = data->cam.flight.p1[2] / maxZ;
     float T_t1 = data->cam.flight.p1[0] / maxX;
