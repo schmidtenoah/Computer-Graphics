@@ -12,6 +12,7 @@
 #include "input.h"
 #include "model.h"
 #include "utils.h"
+#include "physics.h"
 
 #include <fhwcg/fhwcg.h>
 
@@ -146,7 +147,6 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
     vec3 *positions = malloc(sizeof(vec3) * totalVerts);
     vec3 *normals   = malloc(sizeof(vec3) * totalVerts);
     vec2 *texcoords = malloc(sizeof(vec2) * totalVerts);
-    vec3 n;
 
     float maxX = cp->data[dimension-1][0];
     float maxZ = cp->data[(dimension-1)*dimension][2];
@@ -184,12 +184,9 @@ void generateSurfaceVertices(Vec3Arr *cp, int samples, int dimension, float text
             positions[idx][0] = (patch_t * 3 + local_t * 3) * stepX;
             positions[idx][2] = (patch_s * 3 + local_s * 3) * stepZ;
             positions[idx][1] = res.value;
-
+            
             // normal from partial derivatives
-            vec3 rs = { 0.0f, res.dsd, stepZ };
-            vec3 rt = { stepX, res.dtd, 0.0f };
-            glm_vec3_cross(rs, rt, n);
-            glm_vec3_normalize_to(n, normals[idx]);
+            utils_getNormal(res.dsd, res.dtd, stepX, stepZ, normals[idx]);
 
             // TexCoords with tiling
             texcoords[idx][0] = T_s * textureTiling;
@@ -372,6 +369,8 @@ void logic_update(InputData *data) {
 
         // Update camera flight path when surface geometry changes
         logic_initCameraFlight(data);
+
+        physics_init();
     }
 
     if (data->surface.resolutionChanged) {
@@ -400,6 +399,8 @@ void logic_update(InputData *data) {
     if (data->cam.isFlying) {
         logic_updateCameraFlight(data, data->deltaTime);
     }
+
+    physics_update();
 }
 
 void logic_printPolynomials(void) {
@@ -425,6 +426,7 @@ void logic_init(void) {
 void logic_cleanup(void) {
     PatchArr_free(&g_patches);
     vec3arr_free(&getInputData()->surface.controlPoints);
+    physics_cleanup();
 }
 
 void logic_initCameraFlight(InputData *data) {
@@ -502,4 +504,37 @@ void logic_updateCameraFlight(InputData *data, float deltaTime) {
         data->cam.flight.t,
         data->cam.dir
     );
+}
+
+void logic_evalSplineGlobal(float gT, float gS, vec3 posDest, vec3 normalDest) {
+    InputData *data = getInputData();
+    int dimension = data->surface.dimension;
+    int patchCount = dimension - 3;
+
+    float maxX = data->surface.controlPoints.data[dimension-1][0];
+    float maxZ = data->surface.controlPoints.data[(dimension-1)*dimension][2];
+    float stepX = maxX / (patchCount * 3.0f);
+    float stepZ = maxZ / (patchCount * 3.0f);
+
+    float global_s = gS * patchCount;
+    int patch_s = (int) floor(global_s);
+    patch_s = CLAMP(patch_s, 0, patchCount - 1);
+    float local_s = global_s - patch_s;
+
+    float global_t = gT * patchCount;
+    int patch_t = (int) floor(global_t);
+    patch_t = CLAMP(patch_t, 0, patchCount - 1);
+    float local_t = global_t - patch_t;
+
+    Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
+    PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
+
+    vec3 pos = {
+        (patch_t * 3 + local_t * 3) * stepX,
+        res.value,
+        (patch_s * 3 + local_s * 3) * stepZ
+    };
+
+    glm_vec3_copy(pos, posDest);
+    utils_getNormal(res.dsd, res.dtd, stepX, stepZ, normalDest);
 }

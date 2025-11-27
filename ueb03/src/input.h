@@ -83,6 +83,11 @@ typedef struct {
         float speed;
     } pointLight;
 
+    struct {
+        float gravity;
+        float fixedDt;
+    } physics;
+
 } InputData;
 
 /**

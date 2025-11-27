@@ -108,6 +108,14 @@ const HeightData HEIGHTDATA_HIGHEST = HeightData(
     )
 );
 
+const Material BALL_MATERIAL = Material(
+        vec3(0.5, 0.5, 0.5),
+        vec3(0.6, 0.6, 0.6),
+        vec3(0.1, 0.1, 0.1),
+        vec3(0.0, 0.0, 0.0),
+        200.0
+);
+
 in VS_OUT {
     vec2 TexCoords;
     vec3 PositionWS;
@@ -127,6 +135,7 @@ uniform sampler2D u_texture;
 uniform bool u_useTexture = false;
 uniform vec3 u_camPosVS;
 uniform PointLight u_pointLight;
+uniform bool u_useBallMat;
 
 /**
  * Computes Phong lighting contribution for a given light direction and view direction.
@@ -205,17 +214,23 @@ HeightData getHeightData(float height) {
  * then applies shading.
  */
 void main(void) {
-    HeightData data = getHeightData(fs_in.PositionWS.y);
+    Material mat;
 
-    Material mat = data.mat;
-
-    if (u_useTexture) {
-        mat.diffuse = texture(u_texture, fs_in.TexCoords).rgb;
+    if (u_useBallMat) {
+        mat = BALL_MATERIAL;
     } else {
-        mat.diffuse = data.color;
+        HeightData data = getHeightData(fs_in.PositionWS.y);
+
+        mat = data.mat;
+
+        if (u_useTexture) {
+            mat.diffuse = texture(u_texture, fs_in.TexCoords).rgb;
+        } else {
+            mat.diffuse = data.color;
+        }
     }
 
-   if (u_pointLight.enabled) {
+    if (u_pointLight.enabled) {
         vec3 N = normalize(fs_in.NormalVS);
         vec3 V = normalize(u_camPosVS - fs_in.PositionVS);
         vec3 phongColor = pointLightContribution(N, V, fs_in.PositionVS, mat);

@@ -24,6 +24,7 @@
 #define VEC3(x, y, z) ((vec3){(float) x, (float) y, (float) z})
 #define VEC3X(x) ((vec3){(float) x, (float) x, (float) x})
 #define VEC2(x, y) ((vec2) {x, y})
+#define CLAMP(x, min, max) ((x < min) ? min : (x > max) ? max : x)
 
 #define DEFINE_ARRAY_TYPE(TYPE, NAME)                                          \
 typedef struct {                                                               \
@@ -203,5 +204,6 @@ void utils_evalBezierTangent3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3
  */
 void utils_rotateAroundYAxis(vec3* currPos, float* currAngle, vec3 center, float radius, float speed, float deltaTime);
 
+void utils_getNormal(float dsd, float dtd, float stepX, float stepZ, vec3 dest);
 
 #endif // UTILS_H

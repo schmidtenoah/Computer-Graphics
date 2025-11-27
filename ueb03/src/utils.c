@@ -293,3 +293,11 @@ void utils_rotateAroundYAxis(vec3 *currPos, float *currAngle, vec3 center, float
     (*currPos)[1] = center[1];
     (*currPos)[2] = center[2] + radius * sinf(*currAngle);
 }
+
+void utils_getNormal(float dsd, float dtd, float stepX, float stepZ, vec3 dest){
+    vec3 n = { 0 };
+    vec3 rs = { 0.0f, dsd, stepZ };
+    vec3 rt = { stepX, dtd, 0.0f };
+    glm_vec3_cross(rs, rt, n);
+    glm_vec3_normalize_to(n, dest);
+}

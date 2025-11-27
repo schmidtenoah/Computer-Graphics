@@ -10,24 +10,12 @@
 
 #include <fhwcg/fhwcg.h>
 
-typedef struct {
-    vec3 point;
-    vec3 normal;
+void physics_init(void);
 
-    float s, t;
-    bool valid;
-} ContactInfo;
+void physics_update(void);
 
-typedef struct {
-    vec3 center;
-    vec3 velocity;
-    vec3 acceleration; 
-    vec3 rollDir;
-    
-    ContactInfo contact;
-    float mass;
-    float radius;
-} Ball;
+void physics_cleanup(void);
 
+void physics_drawBalls(void);
 
 #endif // PHYSICS_H

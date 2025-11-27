@@ -64,7 +64,7 @@ GLuint model_getTextureId(int index);
  * @note @param model must be < MODEL_MESH_COUNT
  * @param drawNormals If Normals should be drawn
  */
-void model_draw(ModelType model, bool drawNormals, mat4 *viewMat, mat4 *modelViewMat);
+void model_draw(ModelType model, bool drawNormals, bool useBallMat, mat4 *viewMat, mat4 *modelViewMat);
 
 /**
  * Draws the given model via the Simple-Shader (only color).

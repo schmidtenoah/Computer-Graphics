@@ -93,7 +93,7 @@ void shader_load(void) {
     }
 }
 
-void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat) {
+void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat, bool useBallMat) {
     shader_useShader(modelShader);
 
     mat4 mat;
@@ -101,6 +101,7 @@ void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat) {
     shader_setMat4(modelShader, "u_mvpMatrix", &mat);
     shader_setMat4(modelShader, "u_viewMatrix", viewMat);
     shader_setMat4(modelShader, "u_modelviewMatrix", modelviewMat);
+    shader_setBool(modelShader, "u_useBallMat", useBallMat);
 }
 
 void shader_setColor(vec3 color) {

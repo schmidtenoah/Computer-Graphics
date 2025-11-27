@@ -30,7 +30,7 @@ void shader_load(void);
  * Gets the combined MVP matrix from scene and uploads it
  * to shader for vertex transformation.
  */
-void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat);
+void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat, bool useBallMat);
 
 /**
  * Sets the color uniform in the simple shader.

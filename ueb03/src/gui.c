@@ -12,6 +12,7 @@
 #include "input.h"
 #include "logic.h"
 #include "utils.h"
+#include "physics.h"
 
 #define GUI_WINDOW_HELP "window_help"
 #define GUI_WINDOW_MENU "window_menu"
@@ -107,6 +108,16 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
             }
 
             gui_checkbox(ctx, "Wireframe", &input->showWireframe);
+
+            gui_treePop(ctx);
+        }
+
+        if (gui_treePush(ctx, NK_TREE_TAB, "PHYSICS", NK_MINIMIZED)) {
+            gui_layoutRowDynamic(ctx, 25, 1);
+
+            if (gui_button(ctx, "reset")) {
+                physics_init();
+            }
 
             gui_treePop(ctx);
         }

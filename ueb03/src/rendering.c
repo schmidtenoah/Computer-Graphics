@@ -19,6 +19,7 @@
 #include "shader.h"
 #include "utils.h"
 #include "logic.h"
+#include "physics.h"
 
 /** Projection data*/
 #define NEAR_PLANE 0.0001f
@@ -91,6 +92,70 @@ static void updatePointLight(InputData *data) {
     }
 }
 
+static void drawCamFlightPath(InputData *data) {
+    const int SEG = 128;
+    vec3 p;
+    for (int i = 0; i <= SEG; ++i) {
+        float t = (float)i / (float)SEG;
+        utils_evalBezier3D(
+            data->cam.flight.p0,
+            data->cam.flight.p1,
+            data->cam.flight.p2,
+            data->cam.flight.p3,
+            t, p
+        );
+
+        scene_pushMatrix();
+        {
+            scene_translateV(p);
+            scene_scaleV(VEC3X(0.003f));
+            shader_setColor(VEC3(1, 1, 0));
+            model_drawSimple(MODEL_SPHERE);
+        }
+        scene_popMatrix();
+    }
+}
+
+static void drawControlPoints(InputData *data) {
+    for (int i = 0; i < data->surface.controlPoints.size; ++i) {
+        scene_pushMatrix();
+
+        bool isSelected = data->selection.selectedCp == i;
+
+        scene_translateV(data->surface.controlPoints.data[i]);
+        scene_scaleV(isSelected ? VEC3X(0.1f) : VEC3X(0.01f));
+        vec3 *idxColor = (data->selection.selectedCp == i) ? 
+            &SELECTED_COLOR : &VEC3X(i / data->surface.controlPoints.size)
+        ;
+
+        shader_setColor(*idxColor);
+        model_drawSimple(MODEL_SPHERE);
+
+        scene_popMatrix();
+    }
+}
+
+static void drawSurface(InputData *data) {
+    mat4 modelviewMat, viewMat;
+    scene_getMV(viewMat);
+    updatePointLight(data);
+    scene_getMV(modelviewMat);
+        
+    // Set texture if enabled
+    if (data->surface.useTexture) {
+        GLuint texId = model_getTextureId(data->surface.currentTextureIndex);
+        shader_setTexture(texId, true);
+    } else {
+        shader_setTexture(0, false);
+    }
+    
+    model_drawSurface(data->showNormals, &viewMat, &modelviewMat);
+}
+
+static void drawBalls(InputData *data) {
+    NK_UNUSED(data);
+}
+
 ////////////////////////    LOCAL    ////////////////////////////
 
 void rendering_init(void) {
@@ -118,64 +183,20 @@ void rendering_draw(void) {
     scene_pushMatrix();
 
     updateCamera(data);
-    mat4 viewMat, modelviewMat;
-    scene_getMV(viewMat);
 
     if (data->surface.showControlPoints) {
-        for (int i = 0; i < data->surface.controlPoints.size; ++i) {
-            scene_pushMatrix();
-
-            bool isSelected = data->selection.selectedCp == i;
-
-            scene_translateV(data->surface.controlPoints.data[i]);
-            scene_scaleV(isSelected ? VEC3X(0.1f) : VEC3X(0.01f));
-            vec3 *idxColor = (data->selection.selectedCp == i) ? 
-                &SELECTED_COLOR : &VEC3X(i / data->surface.controlPoints.size)
-            ;
-
-            shader_setColor(*idxColor);
-            model_drawSimple(MODEL_SPHERE);
-
-            scene_popMatrix();
-        }
+        drawControlPoints(data);
     }
 
     if (data->surface.showSurface) {
-        updatePointLight(data);
-        scene_getMV(modelviewMat);
-        
-        // Set texture if enabled
-        if (data->surface.useTexture) {
-            GLuint texId = model_getTextureId(data->surface.currentTextureIndex);
-            shader_setTexture(texId, true);
-        } else {
-            shader_setTexture(0, false);
-        }
-        
-        model_drawSurface(data->showNormals, &viewMat, &modelviewMat);
+        drawSurface(data);
     }
 
-    // Draw camera flight path if enabled
     if (data->cam.flight.showPath) {
-        const int SEG = 128;
-        vec3 p;
-        for (int i = 0; i <= SEG; ++i) {
-            float t = (float)i / (float)SEG;
-            utils_evalBezier3D(
-                data->cam.flight.p0,
-                data->cam.flight.p1,
-                data->cam.flight.p2,
-                data->cam.flight.p3,
-                t, p
-            );
-            scene_pushMatrix();
-            scene_translateV(p);
-            scene_scaleV(VEC3X(0.003f));
-            shader_setColor(VEC3(1, 1, 0));
-            model_drawSimple(MODEL_SPHERE);
-            scene_popMatrix();
-        }
+        drawCamFlightPath(data);
     }
+    
+    physics_drawBalls();
 
     scene_popMatrix();
     debug_popRenderScope();

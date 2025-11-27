@@ -28,6 +28,8 @@
 #define CONTROL_POINT_OFFSET 0.1f
 #define SELECTED_CONTROL_POINT_Y_CHANGE 0.01f
 
+#define DEFAULT_GRAVITY 9.81f
+
 ////////////////////////    LOCAL    ////////////////////////////
 
 /** Global application state containing all input, settings. */
@@ -218,13 +220,15 @@ void input_init(ProgContext ctx) {
     g_input.selection.pressingUp = false;
 
     g_input.pointLight.visualize = false;
-    g_input.pointLight.enabled = true;
+    g_input.pointLight.enabled = false;
     g_input.pointLight.ambientFactor = 0.3f;
     g_input.pointLight.speed = 1.0f;
     g_input.pointLight.rotationRadius = 0.5f;
     glm_vec3_copy(VEC3(1.0f, 0.09f, 0.032f), g_input.pointLight.falloff);
     glm_vec3_copy(VEC3(0.8f, 1.0f, 1.0f), g_input.pointLight.color);
     glm_vec3_copy(VEC3(0, 0, 0), g_input.pointLight.posWS);
+
+    g_input.physics.gravity = DEFAULT_GRAVITY;
 
 }
 

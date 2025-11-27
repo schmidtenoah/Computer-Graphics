@@ -74,4 +74,6 @@ void logic_initCameraFlight(InputData *data);
  */
 void logic_updateCameraFlight(InputData *data, float deltaTime);
 
+void logic_evalSplineGlobal(float gT, float gS, vec3 posDest, vec3 normalDest);
+
 #endif // LOGIC_H
