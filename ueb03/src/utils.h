@@ -67,7 +67,13 @@ static inline void NAME##_push(NAME *arr, TYPE value) {                        \
     if (arr->size >= arr->capacity)                                            \
         NAME##_reserve(arr, arr->size + 1);                                    \
     arr->data[arr->size++] = value;                                            \
-}
+}                                                                              \
+                                                                               \
+static inline void NAME##_popBack(NAME *arr) {                                 \
+    if (arr->size > 0) {                                                       \
+        arr->size--;                                                           \
+    }                                                                          \
+}                                                                              \
 
 typedef enum {
     HF_FLAT,

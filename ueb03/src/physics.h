@@ -17,5 +17,7 @@ void physics_update(void);
 void physics_cleanup(void);
 
 void physics_drawBalls(void);
+void physics_addBall(void);
+void physics_removeBall(void);
 
 #endif // PHYSICS_H

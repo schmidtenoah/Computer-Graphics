@@ -86,7 +86,9 @@ typedef struct {
     struct {
         float gravity;
         float fixedDt;
+        float dtAccumulator;
         float mass;
+        float ballRadius;
     } physics;
 
 } InputData;

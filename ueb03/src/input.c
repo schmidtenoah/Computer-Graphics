@@ -29,8 +29,9 @@
 #define SELECTED_CONTROL_POINT_Y_CHANGE 0.01f
 
 #define DEFAULT_GRAVITY 9.81f
-#define DEFAULT_MASS 1.0f
-#define DEFAULT_FIXED_DT 0.001f
+#define DEFAULT_MASS 200.0f
+#define DEFAULT_FIXED_DT (1.0f / 60.0f);
+#define DEFAULT_BALL_RADIUS 0.1f
 
 ////////////////////////    LOCAL    ////////////////////////////
 
@@ -202,7 +203,7 @@ void input_init(ProgContext ctx) {
     g_input.cam.flight.t = 1.0f;
 
     g_input.surface.dimension = SURFACE_START_DIM;
-    g_input.surface.resolution = SURFACE_START_DIM * 10;
+    g_input.surface.resolution = SURFACE_START_DIM * 20;
     g_input.surface.dimensionChanged = true;
     g_input.surface.resolutionChanged = true;
     g_input.surface.offsetChanged = true;
@@ -233,6 +234,7 @@ void input_init(ProgContext ctx) {
     g_input.physics.gravity = DEFAULT_GRAVITY;
     g_input.physics.mass = DEFAULT_MASS;
     g_input.physics.fixedDt = DEFAULT_FIXED_DT;
+    g_input.physics.ballRadius = DEFAULT_BALL_RADIUS;
 
 }
 
