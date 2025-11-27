@@ -12,15 +12,13 @@
 #include "model.h"
 
 #define DEFAULT_BALL_NUM 10
-#define DEFAULT_BALL_MASS 10
 #define DEFAULT_BALL_RADIUS 0.1f
-#define DEFAULT_BALL_VELOCITY {0, 0, 0}
+#define DEFAULT_BALL_VELOCITY {0, 1, 0}
 #define DEFAULT_BALL_ACCELERATION {0, 0, 0}
-#define DEFAULT_BALL_ROLL_DIR {0, 0, 0}
+#define DEFAULT_BALL_ROLL_DIR {0, 1, 0}
 
 #define DEFAULT_BALL(idx) {                     \
     .velocity = DEFAULT_BALL_VELOCITY,          \
-    .mass = DEFAULT_BALL_MASS,                  \
     .rollDir = DEFAULT_BALL_ROLL_DIR,           \
     .radius = DEFAULT_BALL_RADIUS,              \
     .acceleration = DEFAULT_BALL_ACCELERATION,  \
@@ -42,11 +40,10 @@ typedef struct {
 typedef struct {
     vec3 center;
     vec3 velocity;
-    vec3 acceleration; 
+    vec3 acceleration;
     vec3 rollDir;
     
     ContactInfo contact;
-    float mass;
     float radius;
 } Ball;
 
@@ -84,29 +81,32 @@ void physics_init(void) {
 void physics_update(void) {
     InputData *data = getInputData();
     float dt = data->deltaTime;
+    //float dt = data->physics.fixedDt;
     float g = data->physics.gravity;
-    vec3 gVec = {0, -g, 0};
+    vec3 gravity = {0, -g, 0};
 
     for (int i = 0; i < g_balls.size; ++i) {
         Ball *b = &g_balls.data[i];
 
+        float gDotN = glm_vec3_dot(gravity, b->contact.normal);
+
         vec3 l = {0};
-        glm_vec3_mul(gVec, b->contact.normal, l);
-        glm_vec3_mul(b->contact.normal, l, l);
+        glm_vec3_scale(b->contact.normal, gDotN, l);
 
         vec3 f = {0};
-        glm_vec3_sub(gVec, l, f);
+        glm_vec3_sub(gravity, l, f);
 
         vec3 a = {0};
-        glm_vec3_div(f, VEC3X(b->mass), a);
-        glm_vec3_mul(a, VEC3X(dt), a);
+        glm_vec3_scale(a, 1.0f / data->physics.mass, a);
 
         glm_vec3_add(b->velocity, a, b->velocity);
 
         vec3 vMulDt = {0};
         glm_vec3_mul(b->velocity, VEC3X(dt), vMulDt);
-
         glm_vec3_add(b->contact.point, vMulDt, b->contact.point);
+
+        logic_closestSplinePointTo(b->contact.point, &b->contact.s, &b->contact.t);
+        logic_evalSplineGlobal(b->contact.t, b->contact.s, b->contact.point, b->contact.normal);
 
         applyContactPoint(b);
     }

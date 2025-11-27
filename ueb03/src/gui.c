@@ -90,7 +90,7 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
         NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
     {
-        if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MAXIMIZED)){
+        if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MINIMIZED)){
             gui_layoutRowDynamic(ctx, 20, 2);
 
             if (gui_button(ctx, "Help")) {
@@ -112,12 +112,16 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
             gui_treePop(ctx);
         }
 
-        if (gui_treePush(ctx, NK_TREE_TAB, "PHYSICS", NK_MINIMIZED)) {
+        if (gui_treePush(ctx, NK_TREE_TAB, "Physics", NK_MAXIMIZED)) {
             gui_layoutRowDynamic(ctx, 25, 1);
 
             if (gui_button(ctx, "reset")) {
                 physics_init();
             }
+
+            gui_propertyFloat(ctx, "gravity", 0.0f, &input->physics.gravity, 20.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "mass", 0.0001f, &input->physics.mass, 20.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "fixed dt", 0.0001f, &input->physics.fixedDt, 1.0f, 0.0001f, 0.001f);
 
             gui_treePop(ctx);
         }
@@ -177,7 +181,7 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
             gui_treePop(ctx);
         }
 
-        if (gui_treePush(ctx, NK_TREE_TAB, "Selection", NK_MAXIMIZED)){
+        if (gui_treePush(ctx, NK_TREE_TAB, "Selection", NK_MINIMIZED)){
             gui_layoutRowDynamic(ctx, 20, 1);
 
             char infoStr[15];

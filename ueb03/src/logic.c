@@ -538,3 +538,19 @@ void logic_evalSplineGlobal(float gT, float gS, vec3 posDest, vec3 normalDest) {
     glm_vec3_copy(pos, posDest);
     utils_getNormal(res.dsd, res.dtd, stepX, stepZ, normalDest);
 }
+
+void logic_closestSplinePointTo(vec3 worldPos, float *outS, float *outT) {
+    InputData *data = getInputData();
+    int dimension = data->surface.dimension;
+
+    float maxX = data->surface.controlPoints.data[dimension-1][0];
+    float maxZ = data->surface.controlPoints.data[(dimension-1)*dimension][2];
+
+    float gT = worldPos[0] / maxX;
+    float gS = worldPos[2] / maxZ;
+    gT = CLAMP(gT, 0.0f, 1.0f);
+    gS = CLAMP(gS, 0.0f, 1.0f);
+
+    *outS = gS;
+    *outT = gT;
+}
