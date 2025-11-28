@@ -249,6 +249,9 @@ void input_init(ProgContext ctx) {
     g_input.physics.ballSpringConst = BALL_SPRING_CONSTANT;
     g_input.physics.ballDamping = BALL_DAMPING;
     g_input.physics.frictionFactor = FRICTION_FACTOR;
+
+    g_input.game.obstacleCnt = OBSTACLE_COUNT;
+    g_input.game.selectedIdx = 0;
 }
 
 InputData* getInputData(void) {

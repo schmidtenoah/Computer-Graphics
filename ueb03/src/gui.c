@@ -142,13 +142,13 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                 gui_propertyFloat(ctx, "friction", 0.1f, &input->physics.frictionFactor, 1.0f, 0.0001f, 0.01f);
 
                 if (gui_treePush(ctx, NK_TREE_NODE, "Ball", NK_MINIMIZED)) {
-                    gui_propertyFloat(ctx, "ball damp", 0.0001f, &input->physics.ballDamping, 1.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "ball damp", 0.0001f, &input->physics.ballDamping, 2.0f, 0.0001f, 0.01f);
                     gui_propertyFloat(ctx, "ball spring", 0.0001f, &input->physics.ballSpringConst, 1000.0f, 0.0001f, 0.1f);
                     gui_treePop(ctx);
                 }
 
                 if (gui_treePush(ctx, NK_TREE_NODE, "Wall", NK_MINIMIZED)) {
-                    gui_propertyFloat(ctx, "wall damp", 0.0001f, &input->physics.wallDamping, 1.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "wall damp", 0.0001f, &input->physics.wallDamping, 2.0f, 0.0001f, 0.01f);
                     gui_propertyFloat(ctx, "wall spring", 0.0001f, &input->physics.wallSpringConst, 1000.0f, 0.0001f, 0.1f);
                     gui_treePop(ctx);
                 }
@@ -210,11 +210,30 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                 logic_printPolynomials();
             }
 
+            gui_treePop(ctx);
+        }
+
+        if (gui_treePush(ctx, NK_TREE_TAB, "Game", NK_MINIMIZED)) {
+
+            if (gui_treePush(ctx, NK_TREE_NODE, "Obstacles", NK_MINIMIZED)) {
+                gui_propertyInt(ctx, "selected idx", 0, &input->game.selectedIdx, OBSTACLE_COUNT - 1, 1, 0.1f);
+
+                int idx = input->game.selectedIdx;
+                gui_propertyFloat(ctx, "T", 0.0f, &input->game.obstacles[idx].gT, 1.0f, 0.0001f, 0.01f);
+                gui_propertyFloat(ctx, "S", 0.0f, &input->game.obstacles[idx].gS, 1.0f, 0.0001f, 0.01f);
+                gui_propertyFloat(ctx, "width", 0.00001f, &input->game.obstacles[idx].width, 1.0f, 0.0001f, 0.01f);
+                
+                if (gui_button(ctx, input->game.obstacles[idx].isParallel ? "parallel" : "orthogonal")) {
+                    input->game.obstacles[idx].isParallel = !input->game.obstacles[idx].isParallel;
+                }
+
+                gui_treePop(ctx);
+            }
 
             gui_treePop(ctx);
         }
 
-        if (gui_treePush(ctx, NK_TREE_TAB, "Selection", NK_MINIMIZED)){
+        if (gui_treePush(ctx, NK_TREE_TAB, "Control Points", NK_MINIMIZED)){
             gui_layoutRowDynamic(ctx, 20, 1);
 
             char infoStr[15];

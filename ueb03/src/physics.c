@@ -24,16 +24,21 @@
     .contact = {                                \
         .s = idx / (float) DEFAULT_BALL_NUM,    \
         .t = idx / (float) DEFAULT_BALL_NUM,    \
-        .valid = true                           \
     }                                           \
 }
+
+typedef struct {
+    vec3 normal;
+
+    // from origin along the normals
+    float distance;
+} Wall;
 
 typedef struct {
     vec3 point;
     vec3 normal;
 
     float s, t;
-    bool valid;
 } ContactInfo;
 
 typedef struct {
@@ -49,14 +54,12 @@ DEFINE_ARRAY_TYPE(Ball, BallArr);
 
 static BallArr g_balls;
 
-// Wand Struct
-typedef struct {
-    vec3 normal;
-    float distance; // Abstand vom Ursprung entlang der Normalen
-} Wall;
-
-static Wall g_walls[4];
-static bool g_wallsInitialized = false;
+static struct {
+    Wall walls[4];
+    bool initialized;
+} g_walls = {
+    .initialized = false
+};
 
 ////////////////////////    LOCAL    ////////////////////////////
 
@@ -72,32 +75,32 @@ static void initWalls(void) {
     float maxZ = data->surface.controlPoints.data[(dimension-1)*dimension][2];
 
     // Linke Wand (X = 0, Normale goes rechts)
-    glm_vec3_copy((vec3){1, 0, 0}, g_walls[0].normal);
-    g_walls[0].distance = 0.0f;
+    glm_vec3_copy((vec3){1, 0, 0}, g_walls.walls[0].normal);
+    g_walls.walls[0].distance = 0.0f;
 
     // Rechte Wand (X = maxX, Normale goes links)
-    glm_vec3_copy((vec3){-1, 0, 0}, g_walls[1].normal);
-    g_walls[1].distance = maxX;
+    glm_vec3_copy((vec3){-1, 0, 0}, g_walls.walls[1].normal);
+    g_walls.walls[1].distance = maxX;
 
     // Vordere Wand (Z = 0, Normale goes hinten)
-    glm_vec3_copy((vec3){0, 0, 1}, g_walls[2].normal);
-    g_walls[2].distance = 0.0f;
+    glm_vec3_copy((vec3){0, 0, 1}, g_walls.walls[2].normal);
+    g_walls.walls[2].distance = 0.0f;
 
     // Hintere Wand (Z = maxZ, Normale goes vorne)
-    glm_vec3_copy((vec3){0, 0, -1}, g_walls[3].normal);
-    g_walls[3].distance = maxZ;
+    glm_vec3_copy((vec3){0, 0, -1}, g_walls.walls[3].normal);
+    g_walls.walls[3].distance = maxZ;
 
-    g_wallsInitialized = true;
+    g_walls.initialized = true;
 }
 
 /**
  * Penalty-Methode für Wandkollisionen
  */
 static void applyWallPenalty(InputData *data, Ball *b, float radius, float mass) {
-    assert(g_wallsInitialized);
+    assert(g_walls.initialized);
 
     for (int i = 0; i < 4; i++) {
-        Wall *wall = &g_walls[i];
+        Wall *wall = &g_walls.walls[i];
 
         // Berechnung signierter Abstand vom Kugelzentrum zur Wand
         // d = normal · center + distance
@@ -304,7 +307,7 @@ void physics_update(void) {
 
 void physics_cleanup(void) {
     BallArr_free(&g_balls);
-    g_wallsInitialized = false;
+    g_walls.initialized = false;
 }
 
 void physics_drawBalls(void) {

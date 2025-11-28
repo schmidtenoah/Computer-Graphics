@@ -86,7 +86,7 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
                 height = RANDOM_HEIGHT(0.5f);
             }
 
-            p[1] = height;
+            p[1] = height - p[0] * 0.1f;
             vec3arr_push(&newPoints, p);
         }
     }
@@ -337,6 +337,13 @@ static float evalSurfaceAt(int dimension, float T_s, float T_t) {
     PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
 
     return res.value;
+}
+
+static void initWalls(InputData *data) {
+    NK_UNUSED(data);
+}
+static void updateWalls(InputData *data) {
+    NK_UNUSED(data);
 }
 
 ////////////////////////    PUBLIC    ////////////////////////////

@@ -17,11 +17,21 @@
 
 #include <fhwcg/fhwcg.h>
 
+#define OBSTACLE_COUNT 6
+
 typedef struct {
     size_t size;
     size_t capacity;
     vec3 *data;
 } Vec3Arr;
+
+typedef struct {
+    vec3 normal;
+    vec3 center;
+    float width;
+    bool isParallel;
+    float gS, gT;
+} Obstacle;
 
 /** Struct containing all data for application state. */
 typedef struct {
@@ -95,6 +105,12 @@ typedef struct {
         float ballDamping;
         float frictionFactor;
     } physics;
+
+    struct {
+        Obstacle obstacles[OBSTACLE_COUNT];
+        int selectedIdx;
+        int obstacleCnt;
+    } game;
 
 } InputData;
 
