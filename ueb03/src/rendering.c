@@ -152,8 +152,32 @@ static void drawSurface(InputData *data) {
     model_drawSurface(data->showNormals, &viewMat, &modelviewMat);
 }
 
-static void drawBalls(InputData *data) {
-    NK_UNUSED(data);
+static void drawObstacles(InputData *data) {
+    scene_pushMatrix();
+
+    bool showNormals = data->showNormals;
+    mat4 modelviewMat, viewMat;
+    scene_getMV(viewMat);
+
+    for (int i = 0; i < OBSTACLE_COUNT; ++i) {
+        scene_pushMatrix();
+
+        Obstacle *o = &data->game.obstacles[i];
+        scene_translateV(o->center);
+
+        if (o->isParallel) {
+            scene_rotate(90, 0, 1, 0);
+        }
+
+        scene_scale(o->length, 0.05f, o->width);
+        scene_getMV(modelviewMat);
+
+        model_draw(MODEL_CUBE, showNormals, true, &viewMat, &modelviewMat);
+
+        scene_popMatrix();
+    }
+
+    scene_popMatrix();
 }
 
 ////////////////////////    LOCAL    ////////////////////////////
@@ -194,6 +218,10 @@ void rendering_draw(void) {
 
     if (data->cam.flight.showPath) {
         drawCamFlightPath(data);
+    }
+
+    if (data->game.showObstacles) {
+        drawObstacles(data);
     }
     
     physics_drawBalls();

@@ -52,6 +52,71 @@ static void model_initSphere(void) {
 }
 
 /**
+ * Creates a unit Cube mesh.
+ */
+static void model_initCube(void) {
+    const float positions[24][3] = {
+        // +X face
+        { 1, -1, -1 }, { 1,  1, -1 }, { 1,  1,  1 }, { 1, -1,  1 },
+        // -X face
+        { -1, -1,  1 }, { -1,  1,  1 }, { -1,  1, -1 }, { -1, -1, -1 },
+        // +Y face
+        { -1,  1, -1 }, { -1,  1,  1 }, { 1,  1,  1 }, { 1,  1, -1 },
+        // -Y face
+        { -1, -1,  1 }, { -1, -1, -1 }, { 1, -1, -1 }, { 1, -1,  1 },
+        // +Z face
+        { -1, -1,  1 }, { 1, -1,  1 }, { 1,  1,  1 }, { -1,  1,  1 },
+        // -Z face
+        { 1, -1, -1 }, { -1, -1, -1 }, { -1,  1, -1 }, { 1,  1, -1 }
+    };
+
+    const float normals[6][3] = {
+        {  1,  0,  0 }, // +X
+        { -1,  0,  0 }, // -X
+        {  0,  1,  0 }, // +Y
+        {  0, -1,  0 }, // -Y
+        {  0,  0,  1 }, // +Z
+        {  0,  0, -1 }  // -Z
+    };
+
+    const float texCoords[4][2] = {
+        { 0.0f, 0.0f },
+        { 1.0f, 0.0f },
+        { 1.0f, 1.0f },
+        { 0.0f, 1.0f }
+    };
+
+    Vertex vertices[24];
+    GLuint indices[36]; // 6 faces * 2 triangles * 3 indices
+
+    int vIndex = 0;
+    int iIndex = 0;
+
+    for (int face = 0; face < 6; face++) {
+        for (int vert = 0; vert < 4; vert++) {
+            vec3 normal = { normals[face][0], normals[face][1], normals[face][2] };
+            vertices[vIndex++] = (Vertex){
+                positions[face * 4 + vert][0],
+                positions[face * 4 + vert][1],
+                positions[face * 4 + vert][2],
+                normal[0], normal[1], normal[2],
+                texCoords[vert][0], texCoords[vert][1]
+            };
+        }
+
+        int base = face * 4;
+        indices[iIndex++] = base + 0;
+        indices[iIndex++] = base + 1;
+        indices[iIndex++] = base + 2;
+        indices[iIndex++] = base + 0;
+        indices[iIndex++] = base + 2;
+        indices[iIndex++] = base + 3;
+    }
+
+    g_models[MODEL_CUBE] = mesh_createMesh("Cube", vertices, 24, indices, 36, GL_TRIANGLES);
+}
+
+/**
  * Initializes the vao, vbo and ebo for the surface mesh.
  * VBO and EBO are supposed to change dynamically.
  */
@@ -87,6 +152,7 @@ static void model_initSurface(void) {
 
 void model_init(void) {
     model_initSphere();
+    model_initCube();
     model_initSurface();
     model_loadTextures();
 }

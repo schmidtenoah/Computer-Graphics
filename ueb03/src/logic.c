@@ -339,11 +339,19 @@ static float evalSurfaceAt(int dimension, float T_s, float T_t) {
     return res.value;
 }
 
-static void initWalls(InputData *data) {
-    NK_UNUSED(data);
-}
-static void updateWalls(InputData *data) {
-    NK_UNUSED(data);
+static void initObstacles(InputData *data) {
+    for (int i = 0; i < OBSTACLE_COUNT; ++i) {
+        Obstacle *o = &data->game.obstacles[i];
+
+        o->isParallel = (i >= 4);
+        o->gS = ((float) rand() / RAND_MAX);
+        o->gT = ((float) rand() / RAND_MAX);
+        logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
+        o->center[1] += OBSTACLE_OFFSET_Y;
+
+        o->width = 0.05f;
+        o->length = 0.2f;
+    }
 }
 
 ////////////////////////    PUBLIC    ////////////////////////////
@@ -378,6 +386,7 @@ void logic_update(InputData *data) {
         logic_initCameraFlight(data);
 
         physics_init();
+        initObstacles(data);
     }
 
     if (data->surface.resolutionChanged) {

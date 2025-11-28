@@ -24,6 +24,7 @@
 typedef enum {
     // stored as Mesh
     MODEL_SPHERE,
+    MODEL_CUBE,
     MODEL_MESH_COUNT,
 
     // stored with VAO/VBO

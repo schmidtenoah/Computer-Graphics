@@ -216,16 +216,21 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
         if (gui_treePush(ctx, NK_TREE_TAB, "Game", NK_MINIMIZED)) {
 
             if (gui_treePush(ctx, NK_TREE_NODE, "Obstacles", NK_MINIMIZED)) {
+                gui_checkbox(ctx, "show", &input->game.showObstacles);
                 gui_propertyInt(ctx, "selected idx", 0, &input->game.selectedIdx, OBSTACLE_COUNT - 1, 1, 0.1f);
 
-                int idx = input->game.selectedIdx;
-                gui_propertyFloat(ctx, "T", 0.0f, &input->game.obstacles[idx].gT, 1.0f, 0.0001f, 0.01f);
-                gui_propertyFloat(ctx, "S", 0.0f, &input->game.obstacles[idx].gS, 1.0f, 0.0001f, 0.01f);
-                gui_propertyFloat(ctx, "width", 0.00001f, &input->game.obstacles[idx].width, 1.0f, 0.0001f, 0.01f);
+                Obstacle *o = &input->game.obstacles[input->game.selectedIdx];
+                gui_propertyFloat(ctx, "T", 0.0f, &o->gT, 1.0f, 0.0001f, 0.01f);
+                gui_propertyFloat(ctx, "S", 0.0f, &o->gS, 1.0f, 0.0001f, 0.01f);
+                gui_propertyFloat(ctx, "width", 0.00001f, &o->width, 1.0f, 0.0001f, 0.01f);
+                gui_propertyFloat(ctx, "length", 0.00001f, &o->length, 1.0f, 0.0001f, 0.01f);
                 
-                if (gui_button(ctx, input->game.obstacles[idx].isParallel ? "parallel" : "orthogonal")) {
-                    input->game.obstacles[idx].isParallel = !input->game.obstacles[idx].isParallel;
+                if (gui_button(ctx, o->isParallel ? "parallel" : "orthogonal")) {
+                    o->isParallel = !o->isParallel;
                 }
+
+                logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
+                o->center[1] += OBSTACLE_OFFSET_Y;
 
                 gui_treePop(ctx);
             }

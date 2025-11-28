@@ -252,6 +252,7 @@ void input_init(ProgContext ctx) {
 
     g_input.game.obstacleCnt = OBSTACLE_COUNT;
     g_input.game.selectedIdx = 0;
+    g_input.game.showObstacles = true;
 }
 
 InputData* getInputData(void) {
