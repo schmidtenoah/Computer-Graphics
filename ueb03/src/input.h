@@ -89,6 +89,11 @@ typedef struct {
         float dtAccumulator;
         float mass;
         float ballRadius;
+        float wallSpringConst;
+        float wallDamping;
+        float ballSpringConst;
+        float ballDamping;
+        float frictionFactor;
     } physics;
 
 } InputData;

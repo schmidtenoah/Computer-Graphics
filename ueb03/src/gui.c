@@ -34,6 +34,8 @@ static const GuiHelpLine help[] = {
     {"Toggle Menu", "F4"},
     {"Reload Shaders", "R"}, 
     {"Height Functions", "1-7"},
+    {"Tilt in X", "8"},
+    {"Tilt in Z", "9"},
     {"Pause", "P"},
     {"Normals", "N"},
     {"Camera Flight", "C"},
@@ -130,11 +132,29 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
 
             gui_layoutRowDynamic(ctx, 25, 1);
 
-            gui_propertyFloat(ctx, "gravity", 0.0f, &input->physics.gravity, 20.0f, 0.0001f, 0.01f);
-            gui_propertyFloat(ctx, "mass", 0.0001f, &input->physics.mass, 500.0f, 0.0001f, 0.01f);
             gui_propertyFloat(ctx, "fixed dt", 0.0001f, &input->physics.fixedDt, 1.0f, 0.0001f, 0.001f);
 
-            gui_propertyFloat(ctx, "ball radius", 0.0f, &input->physics.ballRadius, 20.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "ball radius", 0.0001f, &input->physics.ballRadius, 20.0f, 0.0001f, 0.01f);
+
+            if (gui_treePush(ctx, NK_TREE_NODE, "Constants", NK_MAXIMIZED)) {
+                gui_propertyFloat(ctx, "gravity", 0.0f, &input->physics.gravity, 20.0f, 0.0001f, 0.01f);
+                gui_propertyFloat(ctx, "mass", 0.0001f, &input->physics.mass, 500.0f, 0.0001f, 0.1f);
+                gui_propertyFloat(ctx, "friction", 0.1f, &input->physics.frictionFactor, 1.0f, 0.0001f, 0.01f);
+
+                if (gui_treePush(ctx, NK_TREE_NODE, "Ball", NK_MINIMIZED)) {
+                    gui_propertyFloat(ctx, "ball damp", 0.0001f, &input->physics.ballDamping, 1.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "ball spring", 0.0001f, &input->physics.ballSpringConst, 1000.0f, 0.0001f, 0.1f);
+                    gui_treePop(ctx);
+                }
+
+                if (gui_treePush(ctx, NK_TREE_NODE, "Wall", NK_MINIMIZED)) {
+                    gui_propertyFloat(ctx, "wall damp", 0.0001f, &input->physics.wallDamping, 1.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "wall spring", 0.0001f, &input->physics.wallSpringConst, 1000.0f, 0.0001f, 0.1f);
+                    gui_treePop(ctx);
+                }
+
+                gui_treePop(ctx);
+            }
 
             gui_treePop(ctx);
         }

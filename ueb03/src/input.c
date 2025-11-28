@@ -29,9 +29,16 @@
 #define SELECTED_CONTROL_POINT_Y_CHANGE 0.01f
 
 #define DEFAULT_GRAVITY 9.81f
-#define DEFAULT_MASS 200.0f
+#define DEFAULT_MASS 50.0f
 #define DEFAULT_FIXED_DT (1.0f / 60.0f);
-#define DEFAULT_BALL_RADIUS 0.1f
+#define DEFAULT_BALL_RADIUS 0.05f
+
+// Kollisionskonstanten
+#define WALL_SPRING_CONSTANT 200.0f     // Federkonstante Wände
+#define BALL_SPRING_CONSTANT 500.0f     // Federkonstante Kugel-Kugel-Kollisionen
+#define FRICTION_FACTOR 0.999f          // Reibungsfaktor (multiplicativ pro Frame)
+#define WALL_DAMPING 0.9f               // Dämpfung Wandkollision
+#define BALL_DAMPING 0.6f               // Dämpfung Kugelkollision
 
 ////////////////////////    LOCAL    ////////////////////////////
 
@@ -100,6 +107,8 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
         case GLFW_KEY_5:
         case GLFW_KEY_6:
         case GLFW_KEY_7:
+        case GLFW_KEY_8:
+        case GLFW_KEY_9:
             utils_applyHeightFunction((HeightFuncType) (key - GLFW_KEY_1));
             break;
 
@@ -235,7 +244,11 @@ void input_init(ProgContext ctx) {
     g_input.physics.mass = DEFAULT_MASS;
     g_input.physics.fixedDt = DEFAULT_FIXED_DT;
     g_input.physics.ballRadius = DEFAULT_BALL_RADIUS;
-
+    g_input.physics.wallSpringConst = WALL_SPRING_CONSTANT;
+    g_input.physics.wallDamping = WALL_DAMPING;
+    g_input.physics.ballSpringConst = BALL_SPRING_CONSTANT;
+    g_input.physics.ballDamping = BALL_DAMPING;
+    g_input.physics.frictionFactor = FRICTION_FACTOR;
 }
 
 InputData* getInputData(void) {

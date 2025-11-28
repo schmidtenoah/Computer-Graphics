@@ -167,6 +167,35 @@ static void height_exp(vec3 *cp, int x, int z, int dimension) {
 }
 
 /**
+ * TODO
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
+static void height_tiltX(vec3 *cp, int x, int z, int dimension) {
+    NK_UNUSED(dimension);
+    NK_UNUSED(z);
+
+    (*cp)[1] -= 0.02f * x;
+}
+
+/**
+ * TODO
+ * @param cp Pointer to control point to modify
+ * @param x X grid index
+ * @param z Z grid index
+ * @param dimension Grid dimension
+ */
+static void height_tiltZ(vec3 *cp, int x, int z, int dimension) {
+    NK_UNUSED(dimension);
+    NK_UNUSED(x);
+
+    (*cp)[1] -= 0.02f * z;
+}
+
+
+/**
  * Array of height function pointers, indexed by HeightFuncType enum.
  */
 static HeightFunc g_heightFuncs[HF_COUNT] = {
@@ -176,7 +205,9 @@ static HeightFunc g_heightFuncs[HF_COUNT] = {
     height_gauss,  // HF_GAUSS
     height_random, // HF_RANDOM
     height_hill,   // HF_HILL
-    height_exp     // HF_EXP
+    height_exp,    // HF_EXP
+    height_tiltX,  // HF_TILT_X
+    height_tiltZ   // HF_TILT_Z
 };
 
 ////////////////////////    PUBLIC    ////////////////////////////

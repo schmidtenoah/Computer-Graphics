@@ -83,6 +83,8 @@ typedef enum {
     HF_RANDOM,
     HF_HILL,
     HF_EXP,
+    HF_TILT_X,
+    HF_TILT_Z,
     HF_COUNT
 } HeightFuncType;
 
