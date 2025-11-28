@@ -24,13 +24,14 @@
 #define CAM_YAW -90
 #define CAM_PITCH -50
 
-#define SURFACE_START_DIM 5
+#define SURFACE_START_DIM 20
+#define SURFACE_START_RES 100
 #define CONTROL_POINT_OFFSET 0.1f
 #define SELECTED_CONTROL_POINT_Y_CHANGE 0.01f
 
 #define DEFAULT_GRAVITY 9.81f
 #define DEFAULT_MASS 50.0f
-#define DEFAULT_FIXED_DT (1.0f / 60.0f);
+#define DEFAULT_FIXED_DT (1.0f / 120.0f);
 #define DEFAULT_BALL_RADIUS 0.05f
 
 // Kollisionskonstanten
@@ -212,7 +213,7 @@ void input_init(ProgContext ctx) {
     g_input.cam.flight.t = 1.0f;
 
     g_input.surface.dimension = SURFACE_START_DIM;
-    g_input.surface.resolution = SURFACE_START_DIM * 20;
+    g_input.surface.resolution = SURFACE_START_RES;
     g_input.surface.dimensionChanged = true;
     g_input.surface.resolutionChanged = true;
     g_input.surface.offsetChanged = true;
@@ -253,6 +254,16 @@ void input_init(ProgContext ctx) {
     g_input.game.obstacleCnt = OBSTACLE_COUNT;
     g_input.game.selectedIdx = 0;
     g_input.game.showObstacles = true;
+
+    for (int i = 0; i < OBSTACLE_COUNT; ++i) {
+        Obstacle *o = &g_input.game.obstacles[i];
+
+        o->isParallel = (i >= 4);
+        o->gS = ((float) rand() / RAND_MAX);
+        o->gT = ((float) rand() / RAND_MAX);
+        o->width = 0.05f;
+        o->length = 0.2f;
+    }
 }
 
 InputData* getInputData(void) {

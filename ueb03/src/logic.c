@@ -86,7 +86,7 @@ static void updateControlPoints(Vec3Arr *cp, int newDim, float cpOffset) {
                 height = RANDOM_HEIGHT(0.5f);
             }
 
-            p[1] = height - p[0] * 0.1f;
+            p[1] = height;
             vec3arr_push(&newPoints, p);
         }
     }
@@ -339,18 +339,12 @@ static float evalSurfaceAt(int dimension, float T_s, float T_t) {
     return res.value;
 }
 
-static void initObstacles(InputData *data) {
+static void updateObstacles(InputData *data) {
     for (int i = 0; i < OBSTACLE_COUNT; ++i) {
         Obstacle *o = &data->game.obstacles[i];
 
-        o->isParallel = (i >= 4);
-        o->gS = ((float) rand() / RAND_MAX);
-        o->gT = ((float) rand() / RAND_MAX);
         logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
         o->center[1] += OBSTACLE_OFFSET_Y;
-
-        o->width = 0.05f;
-        o->length = 0.2f;
     }
 }
 
@@ -386,7 +380,7 @@ void logic_update(InputData *data) {
         logic_initCameraFlight(data);
 
         physics_init();
-        initObstacles(data);
+        updateObstacles(data);
     }
 
     if (data->surface.resolutionChanged) {
