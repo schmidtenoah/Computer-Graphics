@@ -31,6 +31,14 @@ typedef enum {
     MODEL_SURFACE
 } ModelType;
 
+typedef struct {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 emission;
+    float shininess;
+} Material;
+
 /**
  * Initializes all models. Creates  meshes (circle, square, star, triangle)
  * and VAO/VBO for curve model.
@@ -65,7 +73,7 @@ GLuint model_getTextureId(int index);
  * @note @param model must be < MODEL_MESH_COUNT
  * @param drawNormals If Normals should be drawn
  */
-void model_draw(ModelType model, bool drawNormals, bool useBallMat, mat4 *viewMat, mat4 *modelViewMat);
+void model_draw(ModelType model, const Material *mat, bool drawNormals, mat4 *viewMat, mat4 *modelViewMat);
 
 /**
  * Draws the given model via the Simple-Shader (only color).

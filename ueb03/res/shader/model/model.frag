@@ -108,14 +108,6 @@ const HeightData HEIGHTDATA_HIGHEST = HeightData(
     )
 );
 
-const Material BALL_MATERIAL = Material(
-        vec3(0.5, 0.5, 0.5),
-        vec3(0.6, 0.6, 0.6),
-        vec3(0.1, 0.1, 0.1),
-        vec3(0.0, 0.0, 0.0),
-        200.0
-);
-
 in VS_OUT {
     vec2 TexCoords;
     vec3 PositionWS;
@@ -135,7 +127,8 @@ uniform sampler2D u_texture;
 uniform bool u_useTexture = false;
 uniform vec3 u_camPosVS;
 uniform PointLight u_pointLight;
-uniform bool u_useBallMat;
+uniform bool u_useMaterial;
+uniform Material u_material;
 
 /**
  * Computes Phong lighting contribution for a given light direction and view direction.
@@ -216,8 +209,8 @@ HeightData getHeightData(float height) {
 void main(void) {
     Material mat;
 
-    if (u_useBallMat) {
-        mat = BALL_MATERIAL;
+    if (u_useMaterial) {
+        mat = u_material;
     } else {
         HeightData data = getHeightData(fs_in.PositionWS.y);
 

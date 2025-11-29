@@ -15,6 +15,7 @@
 
 #include "shader.h"
 #include "rendering.h"
+#include "model.h"
 
 #define NORMAL_COLOR ((vec3) {1, 0, 0})
 #define NORMAL_LENGTH 0.1f
@@ -93,7 +94,7 @@ void shader_load(void) {
     }
 }
 
-void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat, bool useBallMat) {
+void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat, const Material *m) {
     shader_useShader(modelShader);
 
     mat4 mat;
@@ -101,7 +102,16 @@ void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat, bool useBallMat) {
     shader_setMat4(modelShader, "u_mvpMatrix", &mat);
     shader_setMat4(modelShader, "u_viewMatrix", viewMat);
     shader_setMat4(modelShader, "u_modelviewMatrix", modelviewMat);
-    shader_setBool(modelShader, "u_useBallMat", useBallMat);
+
+    bool useMat = m != NULL;
+    shader_setBool(modelShader, "u_useMaterial", useMat);
+    if (useMat) {
+        shader_setVec3(modelShader, "u_material.ambient", (vec3*)m->ambient);
+        shader_setVec3(modelShader, "u_material.diffuse", (vec3*)m->diffuse);
+        shader_setVec3(modelShader, "u_material.specular", (vec3*)m->specular);
+        shader_setVec3(modelShader, "u_material.emission", (vec3*)m->emission);
+        shader_setFloat(modelShader, "u_material.shininess", m->shininess);
+    }
 }
 
 void shader_setColor(vec3 color) {

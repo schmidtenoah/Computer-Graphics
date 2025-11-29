@@ -344,7 +344,6 @@ static void updateObstacles(InputData *data) {
         Obstacle *o = &data->game.obstacles[i];
 
         logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
-        o->center[1] += OBSTACLE_OFFSET_Y;
     }
 }
 
@@ -376,9 +375,7 @@ void logic_update(InputData *data) {
         center[1] += LIGHT_OFFSET_Y;
         glm_vec3_copy(center, data->pointLight.center);
 
-        // Update camera flight path when surface geometry changes
         logic_initCameraFlight(data);
-
         physics_init();
         updateObstacles(data);
     }
@@ -518,6 +515,10 @@ void logic_updateCameraFlight(InputData *data, float deltaTime) {
 
 void logic_evalSplineGlobal(float gT, float gS, vec3 posDest, vec3 normalDest) {
     InputData *data = getInputData();
+    if (data->surface.dimensionChanged || data->surface.resolutionChanged) {
+        return;
+    }
+
     int dimension = data->surface.dimension;
     int patchCount = dimension - 3;
 

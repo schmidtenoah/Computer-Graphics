@@ -222,15 +222,14 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                 Obstacle *o = &input->game.obstacles[input->game.selectedIdx];
                 gui_propertyFloat(ctx, "T", 0.0f, &o->gT, 1.0f, 0.0001f, 0.01f);
                 gui_propertyFloat(ctx, "S", 0.0f, &o->gS, 1.0f, 0.0001f, 0.01f);
-                gui_propertyFloat(ctx, "width", 0.00001f, &o->width, 1.0f, 0.0001f, 0.01f);
-                gui_propertyFloat(ctx, "length", 0.00001f, &o->length, 1.0f, 0.0001f, 0.01f);
+                gui_propertyFloat(ctx, "width", 0.01f, &o->width, 1.0f, 0.0001f, 0.01f);
+                gui_propertyFloat(ctx, "length", 0.01f, &o->length, 1.0f, 0.0001f, 0.01f);
                 
                 if (gui_button(ctx, o->isParallel ? "parallel" : "orthogonal")) {
                     o->isParallel = !o->isParallel;
                 }
 
                 logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
-                o->center[1] += OBSTACLE_OFFSET_Y;
 
                 gui_treePop(ctx);
             }

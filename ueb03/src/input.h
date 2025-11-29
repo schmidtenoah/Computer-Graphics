@@ -18,7 +18,7 @@
 #include <fhwcg/fhwcg.h>
 
 #define OBSTACLE_COUNT 6
-#define OBSTACLE_OFFSET_Y 0.08f
+#define OBSTACLE_HEIGHT 0.2f
 
 typedef struct {
     size_t size;
@@ -29,7 +29,7 @@ typedef struct {
 typedef struct {
     vec3 normal;
     vec3 center;
-    float width, length;
+    float width, height, length;
     bool isParallel;
     float gS, gT;
 } Obstacle;

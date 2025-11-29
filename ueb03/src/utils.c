@@ -332,3 +332,11 @@ void utils_getNormal(float dsd, float dtd, float stepX, float stepZ, vec3 dest){
     glm_vec3_cross(rs, rt, n);
     glm_vec3_normalize_to(n, dest);
 }
+
+float utils_sphereAABBDist(vec3 sphereCenter, vec3 quadHalfSize, vec3 quadCenter) {
+    float dx = fmaxf(fabsf(sphereCenter[0] - quadCenter[0]) - quadHalfSize[0], 0.0f);
+    float dy = fmaxf(fabsf(sphereCenter[1] - quadCenter[1]) - quadHalfSize[1], 0.0f);
+    float dz = fmaxf(fabsf(sphereCenter[2] - quadCenter[2]) - quadHalfSize[2], 0.0f);
+
+    return sqrtf(dx * dx + dy * dy + dz * dz);
+}

@@ -208,12 +208,12 @@ void model_cleanup(void) {
     glDeleteVertexArrays(1, &g_surface.vao);
 }
 
-void model_draw(ModelType model, bool drawNormals, bool useBallMat, mat4 *viewMat, mat4 *modelviewMat) {
+void model_draw(ModelType model, const Material *mat, bool drawNormals, mat4 *viewMat, mat4 *modelviewMat) {
     if (model >= MODEL_MESH_COUNT) {
         return;
     }
 
-    shader_setMVP(viewMat, modelviewMat, useBallMat);
+    shader_setMVP(viewMat, modelviewMat, mat);
     mesh_drawMesh(g_models[model]);
 
     if (drawNormals) {
@@ -234,7 +234,7 @@ void model_drawSimple(ModelType model) {
 void model_drawSurface(bool drawNormals, mat4 *viewMat, mat4 *modelviewMat) {
     glBindVertexArray(g_surface.vao);
 
-    shader_setMVP(viewMat, modelviewMat, false);
+    shader_setMVP(viewMat, modelviewMat, NULL);
     glDrawElements(GL_TRIANGLES, g_surface.numIndices, GL_UNSIGNED_INT, 0);
 
     if (drawNormals) {

@@ -263,6 +263,7 @@ void input_init(ProgContext ctx) {
         o->gT = ((float) rand() / RAND_MAX);
         o->width = 0.05f;
         o->length = 0.2f;
+        o->height = OBSTACLE_HEIGHT;
     }
 }
 

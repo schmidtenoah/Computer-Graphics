@@ -12,6 +12,7 @@
 #define SHADER_H
 
 #include <fhwcg/fhwcg.h>
+#include "model.h"
 
 /**
  * Deletes all shaders and frees GPU memory.
@@ -29,8 +30,13 @@ void shader_load(void);
  * Activates simple shader and sets MVP matrix uniform.
  * Gets the combined MVP matrix from scene and uploads it
  * to shader for vertex transformation.
+ * 
+ * @param viewMat pointer to the View-Matrix
+ * @param modelviewMat pointer to the combined Model-View-Matrix
+ * @param m pointer to the Material the lighting should use
+ * @note @param m can be NULL if the Material is height dependent!
  */
-void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat, bool useBallMat);
+void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat, const Material *m);
 
 /**
  * Sets the color uniform in the simple shader.

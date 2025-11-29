@@ -61,6 +61,14 @@ static struct {
     .initialized = false
 };
 
+static const Material BALL_MAT = {
+    .ambient = {0.5f, 0.5f, 0.5f},
+    .diffuse = {0.6f, 0.6f, 0.6f},
+    .emission = {0.0f, 0.0f, 0.0f},
+    .specular = {0.1f, 0.1f, 0.1f},
+    .shininess = 200.0f
+};
+
 ////////////////////////    LOCAL    ////////////////////////////
 
 /**
@@ -200,6 +208,41 @@ static void applyBallCollisions(InputData *data, float radius, float mass) {
     }
 }
 
+static void applyObstacleCollision(InputData *data, Ball *ball, Obstacle *o) {
+    vec3 halfSize;
+    glm_vec3_scale(VEC3(o->length, o->height, o->width), 0.5f, halfSize);
+
+    float dist = utils_sphereAABBDist(ball->center, halfSize, o->center);
+    if (dist >= data->physics.ballRadius) {
+        return;
+    }
+
+    // get normal
+    vec3 quadToBall;
+    glm_vec3_sub(ball->center, o->center, quadToBall);
+
+    vec3 normal = { 0 };
+    float ax = fabsf(quadToBall[0]) - halfSize[0];
+    float ay = fabsf(quadToBall[1]) - halfSize[1];
+    float az = fabsf(quadToBall[2]) - halfSize[2];
+
+    if (ax > ay && ax > az) {
+        normal[0] = (quadToBall[0] > 0) ? 1.0f : -1.0f;
+    } else if (ay > ax && ay > az) {
+        normal[1] =  (quadToBall[1] > 0) ? 1.0f : -1.0f;
+    } else {
+        normal[2] =  (quadToBall[2] > 0) ? 1.0f : -1.0f;
+    }
+
+    // Reflection
+    float dot = glm_vec3_dot(ball->velocity, normal);
+    if (dot < 0) {
+        vec3 impulse;
+        glm_vec3_scale(normal, -2.0f * dot, impulse);
+        glm_vec3_add(ball->velocity, impulse, ball->velocity);
+    }
+}
+
 static void applyContactPoint(Ball *b, float radius) {
     assert(b != NULL);
 
@@ -230,6 +273,14 @@ static void updateBalls(InputData *data) {
 
     // Kollisionen berechnen (Penalty)
     applyBallCollisions(data, radius, mass);
+
+    for (int i = 0; i < data->game.obstacleCnt; ++i) {
+        Obstacle *o = &data->game.obstacles[i];
+
+        for (int j = 0; j < g_balls.size; ++j) {
+            applyObstacleCollision(data, &g_balls.data[j], o);
+        }
+    }
 
     // Für jede Kugel: Wandkollisionen und Integration
     for (int i = 0; i < g_balls.size; ++i) {
@@ -328,7 +379,7 @@ void physics_drawBalls(void) {
         scene_scaleV(VEC3X(radius));
         scene_getMV(modelviewMat);
 
-        model_draw(MODEL_SPHERE, showNormals, true, &viewMat, &modelviewMat);
+        model_draw(MODEL_SPHERE, &BALL_MAT, showNormals, &viewMat, &modelviewMat);
         scene_popMatrix();
     }
 

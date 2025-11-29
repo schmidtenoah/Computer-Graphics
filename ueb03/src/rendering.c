@@ -41,6 +41,22 @@ typedef struct {
 
 ////////////////////////    LOCAL    ////////////////////////////
 
+static const Material OBSTACLE_MAT = {
+    .ambient = {0.25f, 0.25f, 0.5f},
+    .diffuse = {0.3f, 0.3f, 0.6f},
+    .emission = {0.0f, 0.0f, 0.0f},
+    .specular = {0.1f, 0.1f, 0.1f},
+    .shininess = 200.0f
+};
+
+static const Material OBSTACLE_MAT_SELECTED = {
+    .ambient = {0.5f, 0.0f, 0.0f},
+    .diffuse = {0.6f, 0.0f, 0.0f},
+    .emission = {0.3f, 0.0f, 0.0f},
+    .specular = {0.1f, 0.1f, 0.1f},
+    .shininess = 400.0f
+};
+
 /** Global rendering data (viewport, projection bounds, screen resolution) */
 static RenderingData g_renderingData;
 
@@ -169,10 +185,11 @@ static void drawObstacles(InputData *data) {
             scene_rotate(90, 0, 1, 0);
         }
 
-        scene_scale(o->length, 0.05f, o->width);
+        scene_scale(o->length, o->height, o->width);
         scene_getMV(modelviewMat);
 
-        model_draw(MODEL_CUBE, showNormals, true, &viewMat, &modelviewMat);
+        const Material *m = (i == data->game.selectedIdx) ? &OBSTACLE_MAT_SELECTED : &OBSTACLE_MAT;
+        model_draw(MODEL_CUBE, m, showNormals, &viewMat, &modelviewMat);
 
         scene_popMatrix();
     }
