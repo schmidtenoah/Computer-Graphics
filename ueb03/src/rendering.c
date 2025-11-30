@@ -180,11 +180,6 @@ static void drawObstacles(InputData *data) {
 
         Obstacle *o = &data->game.obstacles[i];
         scene_translateV(o->center);
-
-        if (o->isParallel) {
-            scene_rotate(90, 0, 1, 0);
-        }
-
         scene_scale(o->length, o->height, o->width);
         scene_getMV(modelviewMat);
 

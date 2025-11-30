@@ -337,26 +337,14 @@ void utils_closestPointOnAABB(vec3 point, Obstacle *o, vec3 dest) {
     vec3 relativePoint;
     glm_vec3_sub(point, o->center, relativePoint);
 
-    float ex = o->length * 0.5f;
-    float ey = o->height * 0.5f;
-    float ez = o->width * 0.5f;
-
-    if (o->isParallel) {
-        float temp = relativePoint[0];
-        relativePoint[0] = relativePoint[2];
-        relativePoint[2] = temp;
-    }
+    float ex = o->length;
+    float ey = o->height;
+    float ez = o->width;
 
     // clamp inside box
     relativePoint[0] = glm_clamp(relativePoint[0], -ex, ex);
     relativePoint[1] = glm_clamp(relativePoint[1], -ey, ey);
     relativePoint[2] = glm_clamp(relativePoint[2], -ez, ez);
-
-    if (o->isParallel) {
-        float temp = relativePoint[0];
-        relativePoint[0] = relativePoint[2];
-        relativePoint[2] = temp;
-    }
 
     glm_vec3_add(o->center, relativePoint, dest);
 }
@@ -364,9 +352,9 @@ void utils_closestPointOnAABB(vec3 point, Obstacle *o, vec3 dest) {
 void utils_getAABBNormal(Obstacle *o, vec3 pos, float dist, vec3 diff, vec3 dest) {
     vec3 normal;
     if (dist < 1e-6f) {
-        float ex = o->length * 0.5f;
-        float ey = o->height * 0.5f;
-        float ez = o->width  * 0.5f;
+        float ex = o->length;
+        float ey = o->height;
+        float ez = o->width;
 
         float dx = ex - fabsf(pos[0] - o->center[0]);
         float dy = ey - fabsf(pos[1] - o->center[1]);
@@ -388,12 +376,6 @@ void utils_getAABBNormal(Obstacle *o, vec3 pos, float dist, vec3 diff, vec3 dest
         }
     } else {
         glm_vec3_scale(diff, 1.0f / dist, normal);
-    }
-
-    if (o->isParallel) {
-        float tmp = normal[0];
-        normal[0] = normal[2];
-        normal[2] = tmp;
     }
 
     glm_vec3_copy(normal, dest);

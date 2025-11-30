@@ -30,7 +30,6 @@ typedef struct {
     vec3 normal;
     vec3 center;
     float width, height, length;
-    bool isParallel;
     float gS, gT;
 } Obstacle;
 

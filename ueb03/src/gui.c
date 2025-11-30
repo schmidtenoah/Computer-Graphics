@@ -231,8 +231,10 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                 gui_propertyFloat(ctx, "width", 0.01f, &o->width, 1.0f, 0.0001f, 0.01f);
                 gui_propertyFloat(ctx, "length", 0.01f, &o->length, 1.0f, 0.0001f, 0.01f);
                 
-                if (gui_button(ctx, o->isParallel ? "parallel" : "orthogonal")) {
-                    o->isParallel = !o->isParallel;
+                if (gui_button(ctx, "switch direction")) {
+                    float temp = o->length;
+                    o->length = o->width;
+                    o->width = temp;
                 }
 
                 logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);

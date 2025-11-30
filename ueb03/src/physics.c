@@ -251,10 +251,6 @@ static void applyObstaclePenalty(
         vec3 reflected;
         glm_vec3_reflect(b->velocity, normal, reflected);
         glm_vec3_scale(reflected, obstacleDamping, b->velocity);
-
-        /*vec3 impulse;
-        glm_vec3_scale(normal, - (1.0f + obstacleDamping) * velDotNormal * 0.5f, impulse);
-        glm_vec3_add(b->velocity, impulse, b->velocity);*/
     }
 }
 

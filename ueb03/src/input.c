@@ -262,11 +262,11 @@ void input_init(ProgContext ctx) {
     for (int i = 0; i < OBSTACLE_COUNT; ++i) {
         Obstacle *o = &g_input.game.obstacles[i];
 
-        o->isParallel = (i >= 4);
+        bool isParallel = (i >= 4);
         o->gS = ((float) rand() / RAND_MAX);
         o->gT = ((float) rand() / RAND_MAX);
-        o->width = 0.05f;
-        o->length = 0.2f;
+        o->width = isParallel ? 0.2f : 0.05f;
+        o->length = isParallel ? 0.05f : 0.2f;
         o->height = OBSTACLE_HEIGHT;
     }
 }
