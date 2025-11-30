@@ -88,7 +88,7 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
     float height = 0.7f * w;
 
     if (gui_beginTitled(ctx, GUI_WINDOW_MENU, "Settings", 
-        nk_rect(15, 15, 200, height),
+        nk_rect(15, 15, 250, height),
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
         NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
     {
@@ -120,7 +120,22 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
             if (gui_button(ctx, "reset")) {
                 physics_init();
             }
+
             gui_layoutRowDynamic(ctx, 25, 2);
+
+            if (gui_button(ctx, "diagonal")) {
+                physics_orderBallsDiagonally();
+            }
+
+            if (gui_button(ctx, "random")) {
+                physics_orderBallsRandom();
+            }
+
+            if (gui_button(ctx, "around max")) {
+                physics_orderBallsAroundMax();
+            }
+
+            gui_propertyFloat(ctx, "radius", 0.001f, &input->physics.ballSpawnRadius, 100.0f, 0.0001f, 0.01f);
 
             if (gui_button(ctx, "Add Ball")) {
                 physics_addBall();
@@ -142,20 +157,23 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                 gui_propertyFloat(ctx, "friction", 0.1f, &input->physics.frictionFactor, 1.0f, 0.0001f, 0.01f);
 
                 if (gui_treePush(ctx, NK_TREE_NODE, "Ball", NK_MINIMIZED)) {
-                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.ballDamping, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.ballSpringConst, 1000.0f, 0.0001f, 0.1f);
+                    gui_checkbox(ctx, "enabled", &input->physics.ball.enabled);
+                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.ball.damping, 2.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.ball.spring, 1000.0f, 0.0001f, 0.1f);
                     gui_treePop(ctx);
                 }
 
                 if (gui_treePush(ctx, NK_TREE_NODE, "Wall", NK_MINIMIZED)) {
-                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.wallDamping, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.wallSpringConst, 1000.0f, 0.0001f, 0.1f);
+                    gui_checkbox(ctx, "enabled", &input->physics.wall.enabled);
+                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.wall.damping, 2.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.wall.spring, 1000.0f, 0.0001f, 0.1f);
                     gui_treePop(ctx);
                 }
 
                 if (gui_treePush(ctx, NK_TREE_NODE, "Obstacle", NK_MINIMIZED)) {
-                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.obstacleDamping, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.obstacleSpringConst, 1000.0f, 0.0001f, 0.1f);
+                    gui_checkbox(ctx, "enabled", &input->physics.obs.enabled);
+                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.obs.damping, 2.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.obs.spring, 1000.0f, 0.0001f, 0.1f);
                     gui_treePop(ctx);
                 }
 
@@ -303,25 +321,26 @@ static void gui_renderCameraControls(ProgContext ctx, InputData* input) {
     int w, h;
     window_getRealSize(ctx, &w, &h);
 
-    if (gui_begin(ctx, "camera_controls", nk_rect((float) w - 150, (float) h - 60, 150, 60), 
+    if (gui_begin(ctx, "game", nk_rect((float) w - 150, (float) h - 30, 150, 30), 
         NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BACKGROUND)) 
     {
         gui_layoutRowDynamic(ctx, 25, 1);
         
-        if (!input->cam.isFlying) {
-            if (gui_button(ctx, "Start Flight (C)")) {
-                input->cam.isFlying = true;
-                input->cam.flight.t = 0.0f;
-            }
-        } else {
+        if (input->cam.isFlying) {
             char label[32];
             snprintf(label, sizeof(label), "Flying... %.0f%%", input->cam.flight.t * 100.0f);
             gui_label(ctx, label, NK_TEXT_CENTERED);
-        }
-        
-        gui_layoutRowDynamic(ctx, 25, 1);
-        if (gui_button(ctx, input->cam.flight.showPath ? "Hide Path" : "Show Path")) {
-            input->cam.flight.showPath = !input->cam.flight.showPath;
+
+            if (gui_button(ctx, input->cam.flight.showPath ? "Hide Path" : "Show Path")) {
+                input->cam.flight.showPath = !input->cam.flight.showPath;
+            }
+
+            gui_end(ctx);
+            return;
+        } 
+
+        if (gui_button(ctx, input->game.paused ? "start" : "stop")) {
+            input->game.paused = !input->game.paused;
         }
     }
 

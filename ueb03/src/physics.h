@@ -20,4 +20,11 @@ void physics_drawBalls(void);
 void physics_addBall(void);
 void physics_removeBall(void);
 
+void physics_orderBallsDiagonally(void);
+
+
+void physics_orderBallsRandom(void);
+
+void physics_orderBallsAroundMax(void);
+
 #endif // PHYSICS_H

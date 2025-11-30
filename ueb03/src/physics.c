@@ -11,6 +11,8 @@
 #include "logic.h"
 #include "model.h"
 
+#define RAND01 ((float)rand() / RAND_MAX)
+
 #define WALL_CNT 4
 #define DEFAULT_BALL_NUM 10
 #define DEFAULT_BALL_RADIUS 0.1f
@@ -144,10 +146,14 @@ static void handleWallCollision(InputData *data, Ball *b) {
     assert(b != NULL);
     assert(g_walls.initialized);
 
-    float springConst = data->physics.wallSpringConst;
+    if (!data->physics.wall.enabled) {
+        return;
+    }
+
+    float springConst = data->physics.wall.spring;
     float ballRadius = data->physics.ballRadius;
     float ballMass = data->physics.mass;
-    float wallDamping = data->physics.wallDamping;
+    float wallDamping = data->physics.wall.damping;
 
     for (int i = 0; i < WALL_CNT; i++) {
         Wall *wall = &g_walls.walls[i];
@@ -202,9 +208,13 @@ static void applyBallPenalty(
 static void handleBallCollisions(InputData *data, Ball *b1, int i1) {
     assert(b1 != NULL);
 
+    if (!data->physics.ball.enabled) {
+        return;
+    }
+
     float radius = data->physics.ballRadius;
-    float springConst = data->physics.ballSpringConst;
-    float ballDamping = data->physics.ballDamping;
+    float springConst = data->physics.ball.spring;
+    float ballDamping = data->physics.ball.damping;
     float mass = data->physics.mass;
 
     for (int i2 = i1 + 1; i2 < g_balls.size; ++i2) {
@@ -257,9 +267,13 @@ static void applyObstaclePenalty(
 static void handleObstacleCollisions(InputData *data, Ball *b) {
     assert(b != NULL);
 
+    if (!data->physics.obs.enabled) {
+        return;
+    }
+
     float radius = data->physics.ballRadius;
-    float springConst = data->physics.obstacleSpringConst;
-    float obstacleDamping = data->physics.obstacleDamping;
+    float springConst = data->physics.obs.spring;
+    float obstacleDamping = data->physics.obs.damping;
     float mass = data->physics.mass;
 
     for (int i = 0; i < data->game.obstacleCnt; i++) {
@@ -379,6 +393,10 @@ void physics_removeBall(void) {
 
 void physics_update(void) {
     InputData *data = getInputData();
+    if (data->game.paused) {
+        return;
+    }
+
     data->physics.dtAccumulator += data->deltaTime;
 
     while (data->physics.dtAccumulator >= data->physics.fixedDt) {
@@ -415,4 +433,84 @@ void physics_drawBalls(void) {
     }
 
     debug_popRenderScope();
+}
+
+void physics_orderBallsDiagonally(void) {
+    InputData *data = getInputData();
+    data->physics.dtAccumulator = 0.0f;
+    float radius = data->physics.ballRadius;
+
+    int count = (int) g_balls.size;
+    BallArr_free(&g_balls);
+    BallArr_init(&g_balls);
+    BallArr_reserve(&g_balls, count);
+
+    for (int i = 0; i < count; ++i) {
+        Ball b = DEFAULT_BALL(i);
+
+        logic_evalSplineGlobal(b.contact.t, b.contact.s, b.contact.point, b.contact.normal);
+        applyContactPoint(&b, radius);
+
+        BallArr_push(&g_balls, b);
+    }
+}
+
+void physics_orderBallsRandom(void) {
+    InputData *data = getInputData();
+    data->physics.dtAccumulator = 0.0f;
+    float radius = data->physics.ballRadius;
+
+    int count = (int) g_balls.size;
+    BallArr_free(&g_balls);
+    BallArr_init(&g_balls);
+    BallArr_reserve(&g_balls, count);
+
+    for (int i = 0; i < count; ++i) {
+        Ball b = DEFAULT_BALL(RAND01 * (count - 1));
+
+        logic_evalSplineGlobal(b.contact.t, b.contact.s, b.contact.point, b.contact.normal);
+        applyContactPoint(&b, radius);
+
+        BallArr_push(&g_balls, b);
+    }
+}
+
+void physics_orderBallsAroundMax(void) {
+    InputData *data = getInputData();
+    data->physics.dtAccumulator = 0.0f;
+    float radius = data->physics.ballRadius;
+    float spawnRadius = data->physics.ballSpawnRadius;
+
+    int count = (int) g_balls.size;
+    BallArr_free(&g_balls);
+    BallArr_init(&g_balls);
+    BallArr_reserve(&g_balls, count);
+
+    vec3 maxPoint;
+    glm_vec3_copy(data->surface.maxPoint, maxPoint);
+
+    for (int i = 0; i < count; ++i) {
+        Ball b = DEFAULT_BALL(i);
+
+        float angle = RAND01 * 2.0f * (float) M_PI;
+        float r = RAND01 * spawnRadius;
+
+        float x = maxPoint[0] + r * cosf(angle);
+        float z = maxPoint[2] + r * sinf(angle);
+
+        if (x < radius) x = radius;
+        if (z < radius) z = radius;
+        if (x > maxPoint[0]) x = maxPoint[0] - radius;
+        if (z > maxPoint[2]) z = maxPoint[2] - radius;
+
+        b.contact.point[0] = x;
+        b.contact.point[2] = z;
+        b.contact.point[1] = 0.0f;
+
+        logic_closestSplinePointTo(b.contact.point, &b.contact.s, &b.contact.t);
+        logic_evalSplineGlobal(b.contact.t, b.contact.s, b.contact.point, b.contact.normal);
+        applyContactPoint(&b, radius);
+
+        BallArr_push(&g_balls, b);
+    }
 }

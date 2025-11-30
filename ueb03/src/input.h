@@ -33,6 +33,12 @@ typedef struct {
     float gS, gT;
 } Obstacle;
 
+typedef struct {
+    float damping;
+    float spring;
+    bool enabled;
+} Collision;
+
 /** Struct containing all data for application state. */
 typedef struct {
     bool isFullscreen;
@@ -99,13 +105,12 @@ typedef struct {
         float dtAccumulator;
         float mass;
         float ballRadius;
-        float wallSpringConst;
-        float wallDamping;
-        float ballSpringConst;
-        float ballDamping;
-        float obstacleSpringConst;
-        float obstacleDamping;
         float frictionFactor;
+        float ballSpawnRadius;
+
+        Collision ball;
+        Collision wall;
+        Collision obs;
     } physics;
 
     struct {
@@ -113,6 +118,7 @@ typedef struct {
         int selectedIdx;
         int obstacleCnt;
         bool showObstacles;
+        bool paused;
     } game;
 
 } InputData;

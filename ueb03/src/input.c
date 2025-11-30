@@ -34,7 +34,6 @@
 #define DEFAULT_FIXED_DT (1.0f / 120.0f);
 #define DEFAULT_BALL_RADIUS 0.05f
 
-// Kollisionskonstanten
 #define WALL_SPRING_CONSTANT 200.0f     // Federkonstante Wände
 #define BALL_SPRING_CONSTANT 500.0f     // Federkonstante Kugel-Kugel-Kollisionen
 #define OBSTACLE_SPRING_CONSTANT 300.0f
@@ -247,17 +246,25 @@ void input_init(ProgContext ctx) {
     g_input.physics.mass = DEFAULT_MASS;
     g_input.physics.fixedDt = DEFAULT_FIXED_DT;
     g_input.physics.ballRadius = DEFAULT_BALL_RADIUS;
-    g_input.physics.wallSpringConst = WALL_SPRING_CONSTANT;
-    g_input.physics.wallDamping = WALL_DAMPING;
-    g_input.physics.ballSpringConst = BALL_SPRING_CONSTANT;
-    g_input.physics.ballDamping = BALL_DAMPING;
-    g_input.physics.obstacleSpringConst = OBSTACLE_SPRING_CONSTANT;
-    g_input.physics.obstacleDamping = OBSTACLE_DAMPING;
     g_input.physics.frictionFactor = FRICTION_FACTOR;
+    g_input.physics.ballSpawnRadius = 1.0f;
+
+    g_input.physics.ball.damping = BALL_DAMPING;
+    g_input.physics.ball.spring = BALL_SPRING_CONSTANT;
+    g_input.physics.ball.enabled = true;
+
+    g_input.physics.wall.damping = WALL_DAMPING;
+    g_input.physics.wall.spring = WALL_SPRING_CONSTANT;
+    g_input.physics.wall.enabled = true;
+
+    g_input.physics.obs.damping = OBSTACLE_DAMPING;
+    g_input.physics.obs.spring = OBSTACLE_SPRING_CONSTANT;
+    g_input.physics.obs.enabled = true;
 
     g_input.game.obstacleCnt = OBSTACLE_COUNT;
     g_input.game.selectedIdx = 0;
     g_input.game.showObstacles = true;
+    g_input.game.paused = true;
 
     for (int i = 0; i < OBSTACLE_COUNT; ++i) {
         Obstacle *o = &g_input.game.obstacles[i];
