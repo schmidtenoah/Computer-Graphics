@@ -142,14 +142,20 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                 gui_propertyFloat(ctx, "friction", 0.1f, &input->physics.frictionFactor, 1.0f, 0.0001f, 0.01f);
 
                 if (gui_treePush(ctx, NK_TREE_NODE, "Ball", NK_MINIMIZED)) {
-                    gui_propertyFloat(ctx, "ball damp", 0.0001f, &input->physics.ballDamping, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "ball spring", 0.0001f, &input->physics.ballSpringConst, 1000.0f, 0.0001f, 0.1f);
+                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.ballDamping, 2.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.ballSpringConst, 1000.0f, 0.0001f, 0.1f);
                     gui_treePop(ctx);
                 }
 
                 if (gui_treePush(ctx, NK_TREE_NODE, "Wall", NK_MINIMIZED)) {
-                    gui_propertyFloat(ctx, "wall damp", 0.0001f, &input->physics.wallDamping, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "wall spring", 0.0001f, &input->physics.wallSpringConst, 1000.0f, 0.0001f, 0.1f);
+                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.wallDamping, 2.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.wallSpringConst, 1000.0f, 0.0001f, 0.1f);
+                    gui_treePop(ctx);
+                }
+
+                if (gui_treePush(ctx, NK_TREE_NODE, "Obstacle", NK_MINIMIZED)) {
+                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.obstacleDamping, 2.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.obstacleSpringConst, 1000.0f, 0.0001f, 0.1f);
                     gui_treePop(ctx);
                 }
 

@@ -104,6 +104,8 @@ typedef struct {
         float wallDamping;
         float ballSpringConst;
         float ballDamping;
+        float obstacleSpringConst;
+        float obstacleDamping;
         float frictionFactor;
     } physics;
 

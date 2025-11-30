@@ -214,6 +214,8 @@ void utils_rotateAroundYAxis(vec3* currPos, float* currAngle, vec3 center, float
 
 void utils_getNormal(float dsd, float dtd, float stepX, float stepZ, vec3 dest);
 
-float utils_sphereAABBDist(vec3 sphereCenter, vec3 quadHalfSize, vec3 quadCenter);
+void utils_closestPointOnAABB(vec3 point, Obstacle *o, vec3 dest);
+
+void utils_getAABBNormal(Obstacle *o, vec3 pos, float dist, vec3 diff, vec3 dest);
 
 #endif // UTILS_H

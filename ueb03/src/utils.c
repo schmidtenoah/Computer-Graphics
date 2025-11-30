@@ -333,10 +333,68 @@ void utils_getNormal(float dsd, float dtd, float stepX, float stepZ, vec3 dest){
     glm_vec3_normalize_to(n, dest);
 }
 
-float utils_sphereAABBDist(vec3 sphereCenter, vec3 quadHalfSize, vec3 quadCenter) {
-    float dx = fmaxf(fabsf(sphereCenter[0] - quadCenter[0]) - quadHalfSize[0], 0.0f);
-    float dy = fmaxf(fabsf(sphereCenter[1] - quadCenter[1]) - quadHalfSize[1], 0.0f);
-    float dz = fmaxf(fabsf(sphereCenter[2] - quadCenter[2]) - quadHalfSize[2], 0.0f);
+void utils_closestPointOnAABB(vec3 point, Obstacle *o, vec3 dest) {
+    vec3 relativePoint;
+    glm_vec3_sub(point, o->center, relativePoint);
 
-    return sqrtf(dx * dx + dy * dy + dz * dz);
+    float ex = o->length * 0.5f;
+    float ey = o->height * 0.5f;
+    float ez = o->width * 0.5f;
+
+    if (o->isParallel) {
+        float temp = relativePoint[0];
+        relativePoint[0] = relativePoint[2];
+        relativePoint[2] = temp;
+    }
+
+    // clamp inside box
+    relativePoint[0] = glm_clamp(relativePoint[0], -ex, ex);
+    relativePoint[1] = glm_clamp(relativePoint[1], -ey, ey);
+    relativePoint[2] = glm_clamp(relativePoint[2], -ez, ez);
+
+    if (o->isParallel) {
+        float temp = relativePoint[0];
+        relativePoint[0] = relativePoint[2];
+        relativePoint[2] = temp;
+    }
+
+    glm_vec3_add(o->center, relativePoint, dest);
+}
+
+void utils_getAABBNormal(Obstacle *o, vec3 pos, float dist, vec3 diff, vec3 dest) {
+    vec3 normal;
+    if (dist < 1e-6f) {
+        float ex = o->length * 0.5f;
+        float ey = o->height * 0.5f;
+        float ez = o->width  * 0.5f;
+
+        float dx = ex - fabsf(pos[0] - o->center[0]);
+        float dy = ey - fabsf(pos[1] - o->center[1]);
+        float dz = ez - fabsf(pos[2] - o->center[2]);
+
+        // smallest distance to box -> direction o biggest penetration
+        if (dx <= dy && dx <= dz) {
+            normal[0] = (pos[0] > o->center[0]) ? 1.0f : -1.0f;
+            normal[1] = 0.0f;
+            normal[2] = 0.0f;
+        } else if (dy <= dz) {
+            normal[0] = 0.0f;
+            normal[1] = (pos[1] > o->center[1]) ? 1.0f : -1.0f;
+            normal[2] = 0.0f;
+        } else {
+            normal[0] = 0.0f;
+            normal[1] = 0.0f;
+            normal[2] = (pos[2] > o->center[2]) ? 1.0f : -1.0f;
+        }
+    } else {
+        glm_vec3_scale(diff, 1.0f / dist, normal);
+    }
+
+    if (o->isParallel) {
+        float tmp = normal[0];
+        normal[0] = normal[2];
+        normal[2] = tmp;
+    }
+
+    glm_vec3_copy(normal, dest);
 }

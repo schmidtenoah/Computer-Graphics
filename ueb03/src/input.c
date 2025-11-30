@@ -37,9 +37,11 @@
 // Kollisionskonstanten
 #define WALL_SPRING_CONSTANT 200.0f     // Federkonstante Wände
 #define BALL_SPRING_CONSTANT 500.0f     // Federkonstante Kugel-Kugel-Kollisionen
+#define OBSTACLE_SPRING_CONSTANT 300.0f
 #define FRICTION_FACTOR 0.999f          // Reibungsfaktor (multiplicativ pro Frame)
 #define WALL_DAMPING 0.9f               // Dämpfung Wandkollision
 #define BALL_DAMPING 0.6f               // Dämpfung Kugelkollision
+#define OBSTACLE_DAMPING 0.75f
 
 ////////////////////////    LOCAL    ////////////////////////////
 
@@ -249,6 +251,8 @@ void input_init(ProgContext ctx) {
     g_input.physics.wallDamping = WALL_DAMPING;
     g_input.physics.ballSpringConst = BALL_SPRING_CONSTANT;
     g_input.physics.ballDamping = BALL_DAMPING;
+    g_input.physics.obstacleSpringConst = OBSTACLE_SPRING_CONSTANT;
+    g_input.physics.obstacleDamping = OBSTACLE_DAMPING;
     g_input.physics.frictionFactor = FRICTION_FACTOR;
 
     g_input.game.obstacleCnt = OBSTACLE_COUNT;
