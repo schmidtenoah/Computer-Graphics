@@ -11,15 +11,15 @@
 #include "logic.h"
 #include "model.h"
 
+#define WALL_CNT 4
+#
 #define DEFAULT_BALL_NUM 10
 #define DEFAULT_BALL_RADIUS 0.1f
 #define DEFAULT_BALL_VELOCITY {0, 0, 0}
 #define DEFAULT_BALL_ACCELERATION {0, 0, 0}
-#define DEFAULT_BALL_ROLL_DIR {0, 0, 0}
 
 #define DEFAULT_BALL(idx) {                     \
     .velocity = DEFAULT_BALL_VELOCITY,          \
-    .rollDir = DEFAULT_BALL_ROLL_DIR,           \
     .acceleration = DEFAULT_BALL_ACCELERATION,  \
     .contact = {                                \
         .s = idx / (float) DEFAULT_BALL_NUM,    \
@@ -37,16 +37,13 @@ typedef struct {
 typedef struct {
     vec3 point;
     vec3 normal;
-
     float s, t;
 } ContactInfo;
 
 typedef struct {
     vec3 center;
-    vec3 velocity;
     vec3 acceleration;
-    vec3 rollDir;
-
+    vec3 velocity;
     ContactInfo contact;
 } Ball;
 
@@ -55,7 +52,7 @@ DEFINE_ARRAY_TYPE(Ball, BallArr);
 static BallArr g_balls;
 
 static struct {
-    Wall walls[4];
+    Wall walls[WALL_CNT];
     bool initialized;
 } g_walls = {
     .initialized = false
@@ -104,10 +101,10 @@ static void initWalls(void) {
 /**
  * Penalty-Methode für Wandkollisionen
  */
-static void applyWallPenalty(InputData *data, Ball *b, float radius, float mass) {
+static void applyWallPenaltyy(InputData *data, Ball *b, float radius, float mass) {
     assert(g_walls.initialized);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < WALL_CNT; i++) {
         Wall *wall = &g_walls.walls[i];
 
         // Berechnung signierter Abstand vom Kugelzentrum zur Wand
@@ -236,7 +233,7 @@ static void applyObstacleCollision(InputData *data, Ball *ball, Obstacle *o) {
 
     // Reflection
     float dot = glm_vec3_dot(ball->velocity, normal);
-    if (dot < 0) {
+    if (dot > 0) {
         vec3 impulse;
         glm_vec3_scale(normal, -2.0f * dot, impulse);
         glm_vec3_add(ball->velocity, impulse, ball->velocity);
@@ -251,7 +248,189 @@ static void applyContactPoint(Ball *b, float radius) {
     glm_vec3_add(b->contact.point, center, b->center);
 }
 
+/**
+ * Applies the acceleration penalty and velocity reflection for the given ball and wall.
+ * @param b pointer to the ball
+ * @param w pointer to the wall
+ * @param ballMass the mass of the given ball
+ * @param penetration the depth of the penetration
+ * @param springConst constant for the spring force
+ * @param wallDamping damping for the reflection
+ */
+static void applyWallPenalty(
+    Ball *b, Wall *w, float ballMass, float penetration, 
+    float springConst, float wallDamping
+) {
+    assert(b != NULL && w != NULL);
+    assert(penetration > 0.0f);
+    
+    // f = k * d
+    float counterforce = springConst * penetration;
+
+    // acc = (f * normal) / mass
+    vec3 penaltyForce, additionalAcceleration;
+    glm_vec3_scale(w->normal, counterforce, penaltyForce);
+    glm_vec3_scale(penaltyForce, 1.0f / ballMass, additionalAcceleration);
+
+    glm_vec3_add(additionalAcceleration, b->acceleration, b->acceleration);
+
+    // velocity correction via reflection, only when ball rolls towards the wall
+    float velDotNormal = glm_vec3_dot(b->velocity, w->normal);
+    if (velDotNormal < 0.0f) {
+        vec3 reflected;
+        glm_vec3_reflect(b->velocity, w->normal, reflected);
+        glm_vec3_scale(reflected, wallDamping, b->velocity);
+    }
+}
+
+static void handleWallCollision(InputData *data, Ball *b) {
+    assert(b != NULL);
+    assert(g_walls.initialized);
+
+    float springConst = data->physics.wallSpringConst;
+    float ballRadius = data->physics.ballRadius;
+    float ballMass = data->physics.mass;
+    float wallDamping = data->physics.wallDamping;
+
+    for (int i = 0; i < WALL_CNT; i++) {
+        Wall *wall = &g_walls.walls[i];
+
+        // d = normal · center + distance
+        // calcs distance from ball center to wall 
+        float signedDist = glm_vec3_dot(wall->normal, b->center) + wall->distance;
+        float penetrationDepth = ballRadius - signedDist;
+
+        if (penetrationDepth > 0.0f) {
+            applyWallPenalty(b,  wall, ballMass, penetrationDepth, springConst, wallDamping);
+        }
+    }
+}
+
+static void applyBallPenalty(
+    Ball *b1, Ball *b2, float dist, float penetration, vec3 b1ToB2,
+    float springConst, float mass, float ballDamping
+) {
+    assert(b1 != NULL && b2 != NULL);
+    assert(penetration > 0.0f);
+
+    vec3 normal;
+    if (dist < 0.00001f) {
+        glm_vec3_copy(VEC3(1, 0, 0), normal);
+    } else {
+        glm_vec3_scale(b1ToB2, 1.0f / dist, normal);
+    }
+
+    // f = k * d
+    float counterForce = springConst * penetration;
+
+    // acc = (f * normal) / mass
+    vec3 penaltyForce, penaltyAccel;
+    glm_vec3_scale(normal, counterForce, penaltyForce);
+    glm_vec3_scale(penaltyForce, 1.0f / mass, penaltyAccel);
+
+    // apply accelaration 
+    glm_vec3_sub(b1->acceleration, penaltyAccel, b1->acceleration);
+    glm_vec3_add(b2->acceleration, penaltyAccel, b2->acceleration);
+
+    // velocity correction via reflection, only when balls rolls towards each other
+    vec3 relativeVelocity;
+    glm_vec3_sub(b1->velocity, b2->velocity, relativeVelocity);
+    float velocityAlongNormal = glm_vec3_dot(relativeVelocity, normal);
+    if (velocityAlongNormal < 0.0f) {
+        
+        vec3 impulse;
+        glm_vec3_scale(normal, velocityAlongNormal, impulse);
+        glm_vec3_sub(b1->velocity, impulse, b1->velocity);
+        glm_vec3_add(b2->velocity, impulse, b2->velocity);
+    }
+}
+
+static void handleBallsCollisions(InputData *data, Ball *b1) {
+    assert(b1 != NULL);
+
+    float radius = data->physics.ballRadius;
+
+    for (int i = 0; i < g_balls.size; i++) {
+        Ball *b2 = &g_balls.data[i];
+        if (b1 == b2) {
+            continue;
+        }
+
+        vec3 b1ToB2;
+        glm_vec3_sub(b2->center, b1->center, b1ToB2);
+
+        float dist = glm_vec3_norm(b1ToB2);
+        float diameter = 2.0f * radius;
+        float penetrationDepth = diameter - dist;
+
+        if (penetrationDepth > 0.0f) {
+            applyBallPenalty()
+        }
+    }
+}
+
+static void applyExternForces(Ball *b, vec3 gravity, float mass) {
+    assert(b != NULL);
+
+    float gDotN = glm_vec3_dot(gravity, b->contact.normal);
+    vec3 l = {0};
+    glm_vec3_scale(b->contact.normal, gDotN, l);
+
+    vec3 f = {0};
+    glm_vec3_sub(gravity, l, f);
+
+    glm_vec3_scale(f, 1.0f / mass, b->acceleration);
+}
+
+static void applyCollisions(InputData *data, Ball *b) {
+    assert(b != NULL);
+
+    handleWallCollision(data, b);
+    handleBallsCollisions(data, b);
+}
+
+static void applyIntegration(Ball *b, float dt, float friction, float ballRadius) {
+    assert(b != NULL);
+
+    vec3 accelDt;
+    glm_vec3_scale(b->acceleration, dt, accelDt);
+    glm_vec3_add(b->velocity, accelDt, b->velocity);
+
+    // apply friction
+    glm_vec3_scale(b->velocity, friction, b->velocity);
+
+    // update position: s = s + v * dt
+    vec3 vMulDt = {0};
+    glm_vec3_scale(b->velocity, dt, vMulDt);
+    glm_vec3_add(b->contact.point, vMulDt, b->contact.point);
+
+    // apply new position
+    logic_closestSplinePointTo(b->contact.point, &b->contact.s, &b->contact.t);
+    logic_evalSplineGlobal(b->contact.t, b->contact.s, b->contact.point, b->contact.normal);
+    applyContactPoint(b, ballRadius);
+}
+
 static void updateBalls(InputData *data) {
+    float dt = data->physics.fixedDt;
+    vec3 gravity = {0, -data->physics.gravity, 0};
+    float friction = data->physics.frictionFactor;
+    float radius = data->physics.ballRadius;
+    float mass = data->physics.mass;
+
+    for (int i = 0; i < g_balls.size; ++i) {
+        applyExternForces(&g_balls.data[i], gravity, mass);
+    }
+
+    for (int i = 0; i < g_balls.size; ++i) {
+        applyCollisions(data, &g_balls.data[i]);
+    }
+
+    for (int i = 0; i < g_balls.size; ++i) {
+        applyIntegration(&g_balls.data[i], dt, friction, radius);
+    }
+}
+
+static void updateBallss(InputData *data) {
     float g = data->physics.gravity;
     float dt = data->physics.fixedDt;
     vec3 gravity = {0, -g, 0};
