@@ -2,8 +2,8 @@
  * @file gui.c
  * @brief Implementation of GUI components.
  *
- * Manages the rendering of the help overlay, settings menu
- * and start button.
+ * Manages the rendering of the help overlay, settings menu,
+ * game status display and control buttons.
  *
  * @authors Nikolaos Tsetsas, Noah Schmidt
  */
@@ -16,6 +16,7 @@
 
 #define GUI_WINDOW_HELP "window_help"
 #define GUI_WINDOW_MENU "window_menu"
+#define GUI_WINDOW_STATUS "window_status"
 
 ////////////////////////     LOCAL    ////////////////////////////
 
@@ -32,7 +33,7 @@ static const GuiHelpLine help[] = {
     {"Toggle Fullscreen", "F2"},
     {"Toggle Wireframe", "F3"},
     {"Toggle Menu", "F4"},
-    {"Reload Shaders", "R"}, 
+    {"Reload Shaders", "R"},
     {"Height Functions", "1-7"},
     {"Tilt in X", "8"},
     {"Tilt in Z", "9"},
@@ -40,6 +41,7 @@ static const GuiHelpLine help[] = {
     {"Normals", "N"},
     {"Camera Flight", "C"},
     {"Toggle Flight Path", "V"},
+    {"Reset Game", "G"},
     {"Select CP", "Left/Right"},
     {"Adjust Height", "Up/Down"}
 };
@@ -68,15 +70,6 @@ static void gui_renderHelp(ProgContext ctx, InputData* input) {
 
 /**
  * Renders the main settings menu window with collapsible sections.
- * Sections:
- * - General (help, fullscreen, pause),
- * - Visual (wireframe),
- * - Curve (spline/bezier, polygon, convex hull, normals width, resolution),
- * - Game (level info, restart/skip, start, colliders, airplane speed)
- * Only displays if input->showMenu is true.
- *
- * @param ctx Program context
- * @param input Pointer to input data containing GUI state
  */
 static void gui_renderMenu(ProgContext ctx, InputData* input) {
     if (!(input->showMenu)) {
@@ -87,7 +80,7 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
     window_getRealSize(ctx, &w, NULL);
     float height = 0.7f * w;
 
-    if (gui_beginTitled(ctx, GUI_WINDOW_MENU, "Settings", 
+    if (gui_beginTitled(ctx, GUI_WINDOW_MENU, "Settings",
         nk_rect(15, 15, 250, height),
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
         NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
@@ -219,10 +212,10 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
             gui_checkbox(ctx, "Surface", &input->surface.showSurface);
             gui_checkbox(ctx, "Normals", &input->showNormals);
             gui_checkbox(ctx, "Use Texture (T)", &input->surface.useTexture);
-            
+
             if (input->surface.useTexture) {
                 gui_propertyInt(ctx, "Texture", 0, &input->surface.currentTextureIndex, 2, 1, 1);
-                
+
                 float oldTiling = input->surface.textureTiling;
                 gui_propertyFloat(ctx, "Tiling", 0.5f, &input->surface.textureTiling, 20.0f, 0.1f, 0.1f);
                 if (!glm_eq(oldTiling, input->surface.textureTiling)) {
@@ -239,6 +232,31 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
 
         if (gui_treePush(ctx, NK_TREE_TAB, "Game", NK_MINIMIZED)) {
 
+            gui_layoutRowDynamic(ctx, 25, 1);
+
+            if (gui_button(ctx, "Reset Game")) {
+                physics_resetGame();
+            }
+
+            gui_layoutRowDynamic(ctx, 25, 2);
+
+            if (gui_button(ctx, "Add Black Hole")) {
+                physics_addBlackHole();
+            }
+
+            if (gui_button(ctx, "Remove Black Hole")) {
+                physics_removeBlackHole();
+            }
+
+            gui_layoutRowDynamic(ctx, 25, 1);
+
+            char infoStr[50];
+            snprintf(infoStr, 49, "Active Balls: %d", physics_getBallCount());
+            gui_label(ctx, infoStr, NK_TEXT_LEFT);
+
+            snprintf(infoStr, 49, "Black Holes: %d", physics_getBlackHoleCount());
+            gui_label(ctx, infoStr, NK_TEXT_LEFT);
+
             if (gui_treePush(ctx, NK_TREE_NODE, "Obstacles", NK_MINIMIZED)) {
                 gui_checkbox(ctx, "show", &input->game.showObstacles);
                 gui_propertyInt(ctx, "selected idx", 0, &input->game.selectedIdx, OBSTACLE_COUNT - 1, 1, 0.1f);
@@ -248,7 +266,7 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                 gui_propertyFloat(ctx, "S", 0.0f, &o->gS, 1.0f, 0.0001f, 0.01f);
                 gui_propertyFloat(ctx, "width", 0.01f, &o->width, 1.0f, 0.0001f, 0.01f);
                 gui_propertyFloat(ctx, "length", 0.01f, &o->length, 1.0f, 0.0001f, 0.01f);
-                
+
                 if (gui_button(ctx, "switch direction")) {
                     float temp = o->length;
                     o->length = o->width;
@@ -272,11 +290,11 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
 
             gui_layoutRowDynamic(ctx, 20, 2);
             if (gui_button(ctx, "+")) {
-                input->selection.selectedCp = (input->selection.selectedCp + input->selection.skipCnt) 
+                input->selection.selectedCp = (input->selection.selectedCp + input->selection.skipCnt)
                 % input->surface.controlPoints.size;
             }
             if (gui_button(ctx, "-")) {
-                input->selection.selectedCp = (input->selection.selectedCp - input->selection.skipCnt) 
+                input->selection.selectedCp = (input->selection.selectedCp - input->selection.skipCnt)
                 % input->surface.controlPoints.size;
             }
 
@@ -287,7 +305,7 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
 
             gui_propertyInt(ctx, "skip count", 1, &input->selection.skipCnt, 200, 1, 0.1f);
             gui_propertyFloat(ctx, "height change", 0.01f, &input->selection.selectedYChange, 2, 0.01f, 0.01f);
-       
+
             gui_treePop(ctx);
         }
 
@@ -312,6 +330,41 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
 }
 
 /**
+ * Renders game status window showing win/lose state
+ */
+static void gui_renderGameStatus(ProgContext ctx) {
+    int w, h;
+    window_getRealSize(ctx, &w, &h);
+
+    bool showStatus = physics_isGameWon() || physics_isGameLost();
+
+    if (!showStatus) {
+        return;
+    }
+
+    if (gui_begin(ctx, GUI_WINDOW_STATUS,
+        nk_rect((float)w/2 - 150, (float)h/2 - 75, 300, 150),
+        NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_NO_SCROLLBAR))
+    {
+        gui_layoutRowDynamic(ctx, 30, 1);
+
+        if (physics_isGameWon()) {
+            gui_labelColor(ctx, "GEWONNEN!", NK_TEXT_CENTERED, (ivec3){0, 255, 0});
+            gui_label(ctx, "Eine Kugel hat das Ziel erreicht!", NK_TEXT_CENTERED);
+        } else {
+            gui_labelColor(ctx, "VERLOREN!", NK_TEXT_CENTERED, (ivec3){255, 0, 0});
+            gui_label(ctx, "Alle Kugeln wurden verschluckt!", NK_TEXT_CENTERED);
+        }
+
+        gui_layoutRowDynamic(ctx, 40, 1);
+        if (gui_button(ctx, "Neues Spiel")) {
+            physics_resetGame();
+        }
+    }
+    gui_end(ctx);
+}
+
+/**
  * Renders camera flight controls at bottom-right corner of the screen.
  *
  * @param ctx Program context
@@ -321,23 +374,19 @@ static void gui_renderCameraControls(ProgContext ctx, InputData* input) {
     int w, h;
     window_getRealSize(ctx, &w, &h);
 
-    if (gui_begin(ctx, "game", nk_rect((float) w - 150, (float) h - 30, 150, 30), 
-        NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BACKGROUND)) 
+    if (gui_begin(ctx, "game", nk_rect((float) w - 150, (float) h - 30, 150, 30),
+        NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BACKGROUND))
     {
         gui_layoutRowDynamic(ctx, 25, 1);
-        
+
         if (input->cam.isFlying) {
             char label[32];
             snprintf(label, sizeof(label), "Flying... %.0f%%", input->cam.flight.t * 100.0f);
             gui_label(ctx, label, NK_TEXT_CENTERED);
 
-            if (gui_button(ctx, input->cam.flight.showPath ? "Hide Path" : "Show Path")) {
-                input->cam.flight.showPath = !input->cam.flight.showPath;
-            }
-
             gui_end(ctx);
             return;
-        } 
+        }
 
         if (gui_button(ctx, input->game.paused ? "start" : "stop")) {
             input->game.paused = !input->game.paused;
@@ -354,5 +403,6 @@ void gui_renderContent(ProgContext ctx)
     InputData* input = getInputData();
     gui_renderHelp(ctx, input);
     gui_renderMenu(ctx, input);
+    gui_renderGameStatus(ctx);
     gui_renderCameraControls(ctx, input);
 }

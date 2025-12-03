@@ -37,10 +37,11 @@ typedef struct {
     vec3 specular;
     vec3 emission;
     float shininess;
+    float alpha;  // Transparenz: 1.0 = opak, 0.0 = vollständig transparent
 } Material;
 
 /**
- * Initializes all models. Creates  meshes (circle, square, star, triangle)
+ * Initializes all models. Creates meshes (circle, square, star, triangle)
  * and VAO/VBO for curve model.
  */
 void model_init(void);
@@ -59,7 +60,7 @@ void model_loadTextures(void);
 
 /**
  * Returns the current texture ID based on index.
- * 
+ *
  * @param index Texture index (0-2)
  * @return GLuint texture ID
  */

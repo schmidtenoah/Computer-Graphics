@@ -2,13 +2,7 @@
  * @file rendering.c
  * @brief Implementation of rendering and visual effects.
  *
- * Manages entire rendering system including:
- * - Dynamic curve evaluation from control points
- * - Interactive draggable control point buttons
- * - Animated game objects (paper airplane with shadow, rotating stars, drifting clouds)
- * - Gradient background using fullscreen quad
- * - Debug visualization (collision circles, convex hull, control polygon, normals)
- * - Viewport
+ * Manages entire rendering system including surface, balls, black holes, and goal.
  *
  * @authors Nikolaos Tsetsas, Noah Schmidt
  */
@@ -46,7 +40,8 @@ static const Material OBSTACLE_MAT = {
     .diffuse = {0.3f, 0.3f, 0.6f},
     .emission = {0.0f, 0.0f, 0.0f},
     .specular = {0.1f, 0.1f, 0.1f},
-    .shininess = 200.0f
+    .shininess = 200.0f,
+    .alpha = 1.0f
 };
 
 static const Material OBSTACLE_MAT_SELECTED = {
@@ -54,7 +49,8 @@ static const Material OBSTACLE_MAT_SELECTED = {
     .diffuse = {0.6f, 0.0f, 0.0f},
     .emission = {0.3f, 0.0f, 0.0f},
     .specular = {0.1f, 0.1f, 0.1f},
-    .shininess = 400.0f
+    .shininess = 400.0f,
+    .alpha = 1.0f
 };
 
 /** Global rendering data (viewport, projection bounds, screen resolution) */
@@ -140,7 +136,7 @@ static void drawControlPoints(InputData *data) {
 
         scene_translateV(data->surface.controlPoints.data[i]);
         scene_scaleV(isSelected ? VEC3X(0.1f) : VEC3X(0.01f));
-        vec3 *idxColor = (data->selection.selectedCp == i) ? 
+        vec3 *idxColor = (data->selection.selectedCp == i) ?
             &SELECTED_COLOR : &VEC3X(i / data->surface.controlPoints.size)
         ;
 
@@ -156,7 +152,7 @@ static void drawSurface(InputData *data) {
     scene_getMV(viewMat);
     updatePointLight(data);
     scene_getMV(modelviewMat);
-        
+
     // Set texture if enabled
     if (data->surface.useTexture) {
         GLuint texId = model_getTextureId(data->surface.currentTextureIndex);
@@ -164,7 +160,7 @@ static void drawSurface(InputData *data) {
     } else {
         shader_setTexture(0, false);
     }
-    
+
     model_drawSurface(data->showNormals, &viewMat, &modelviewMat);
 }
 
@@ -192,7 +188,7 @@ static void drawObstacles(InputData *data) {
     scene_popMatrix();
 }
 
-////////////////////////    LOCAL    ////////////////////////////
+////////////////////////    PUBLIC    ////////////////////////////
 
 void rendering_init(void) {
     memset(&g_renderingData, 0, sizeof(RenderingData));
@@ -235,8 +231,13 @@ void rendering_draw(void) {
     if (data->game.showObstacles) {
         drawObstacles(data);
     }
-    
+
+    // Zeichne opake Objekte zuerst
     physics_drawBalls();
+    physics_drawBlackHoles();
+
+    // Transparente Objekte zuletzt (mit Depth-Mask deaktiviert)
+    physics_drawGoal();
 
     scene_popMatrix();
     debug_popRenderScope();

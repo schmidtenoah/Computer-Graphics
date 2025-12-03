@@ -111,6 +111,7 @@ void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat, const Material *m) {
         shader_setVec3(modelShader, "u_material.specular", (vec3*)m->specular);
         shader_setVec3(modelShader, "u_material.emission", (vec3*)m->emission);
         shader_setFloat(modelShader, "u_material.shininess", m->shininess);
+        shader_setFloat(modelShader, "u_material.alpha", m->alpha);
     }
 }
 
@@ -140,10 +141,10 @@ void shader_setSimpleMVP(void) {
 
 void shader_setTexture(GLuint textureId, bool useTexture) {
     shader_useShader(modelShader);
-    
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureId);
-    
+
     shader_setInt(modelShader, "u_texture", 0);
     shader_setBool(modelShader, "u_useTexture", useTexture);
 }

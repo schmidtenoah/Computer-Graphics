@@ -16,6 +16,7 @@
 #include "shader.h"
 #include "utils.h"
 #include "logic.h"
+#include "physics.h"
 
 #define CAM_START_POS VEC3(0, 2, 1.8f)
 #define CAM_SPEED 0.5f
@@ -34,12 +35,12 @@
 #define DEFAULT_FIXED_DT (1.0f / 120.0f);
 #define DEFAULT_BALL_RADIUS 0.05f
 
-#define WALL_SPRING_CONSTANT 200.0f     // Federkonstante Wände
-#define BALL_SPRING_CONSTANT 500.0f     // Federkonstante Kugel-Kugel-Kollisionen
+#define WALL_SPRING_CONSTANT 200.0f
+#define BALL_SPRING_CONSTANT 500.0f
 #define OBSTACLE_SPRING_CONSTANT 300.0f
-#define FRICTION_FACTOR 0.999f          // Reibungsfaktor (multiplicativ pro Frame)
-#define WALL_DAMPING 0.9f               // Dämpfung Wandkollision
-#define BALL_DAMPING 0.6f               // Dämpfung Kugelkollision
+#define FRICTION_FACTOR 0.999f
+#define WALL_DAMPING 0.9f
+#define BALL_DAMPING 0.6f
 #define OBSTACLE_DAMPING 0.75f
 
 ////////////////////////    LOCAL    ////////////////////////////
@@ -72,7 +73,7 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
         case GLFW_KEY_ESCAPE:
             window_shouldCloseWindow(ctx);
             break;
-        
+
         case GLFW_KEY_F1:
             data->showHelp = !data->showHelp;
             break;
@@ -102,6 +103,11 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             data->showNormals = !data->showNormals;
             break;
 
+        case GLFW_KEY_G:
+            // Reset game
+            physics_resetGame();
+            break;
+
         case GLFW_KEY_1:
         case GLFW_KEY_2:
         case GLFW_KEY_3:
@@ -115,12 +121,12 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             break;
 
         case GLFW_KEY_RIGHT:
-            data->selection.selectedCp = (data->selection.selectedCp + data->selection.skipCnt) 
+            data->selection.selectedCp = (data->selection.selectedCp + data->selection.skipCnt)
             % data->surface.controlPoints.size;
             break;
 
          case GLFW_KEY_LEFT:
-            data->selection.selectedCp = (data->selection.selectedCp - data->selection.skipCnt) 
+            data->selection.selectedCp = (data->selection.selectedCp - data->selection.skipCnt)
             % data->surface.controlPoints.size;
             break;
 
@@ -142,7 +148,7 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
         case GLFW_KEY_Z:
             data->surface.currentTextureIndex = (data->surface.currentTextureIndex + 1) % 3;
             break;
-        
+
         default:
             break;
     }
@@ -203,8 +209,8 @@ void input_init(ProgContext ctx) {
     g_input.showNormals = false;
 
     g_input.cam.data = camera_createCamera(
-        ctx, CAM_START_POS, 
-        CAM_SPEED, CAM_FAST_SPEED, 
+        ctx, CAM_START_POS,
+        CAM_SPEED, CAM_FAST_SPEED,
         CAM_SENSITIVITY, CAM_YAW, CAM_PITCH
     );
     camera_getPosition(g_input.cam.data, g_input.cam.pos);
@@ -223,7 +229,7 @@ void input_init(ProgContext ctx) {
     g_input.surface.controlPointOffset = CONTROL_POINT_OFFSET;
     g_input.surface.useTexture = false;
     g_input.surface.currentTextureIndex = 0;
-    g_input.surface.textureTiling = 4.0f;  // Texture repeats 4 times across surface
+    g_input.surface.textureTiling = 4.0f;
     g_input.surface.extremesValid = false;
     vec3arr_init(&g_input.surface.controlPoints);
 
