@@ -21,8 +21,7 @@
 ////////////////////////     LOCAL    ////////////////////////////
 
 /* Booleans to toggle between spline and bezier */
-static bool g_showSpline = true;
-static bool g_showBezier = false;
+static bool g_showGameStatus = false;
 
 /**
  * Constant array for help messages and their correspondant button.
@@ -336,9 +335,12 @@ static void gui_renderGameStatus(ProgContext ctx) {
     int w, h;
     window_getRealSize(ctx, &w, &h);
 
-    bool showStatus = physics_isGameWon() || physics_isGameLost();
+    // Status-Fenster anzeigen wenn Spiel vorbei
+    if ((physics_isGameWon() || physics_isGameLost()) && !g_showGameStatus) {
+        g_showGameStatus = true;
+    }
 
-    if (!showStatus) {
+    if (!g_showGameStatus) {
         return;
     }
 
@@ -351,7 +353,7 @@ static void gui_renderGameStatus(ProgContext ctx) {
         if (physics_isGameWon()) {
             gui_labelColor(ctx, "GEWONNEN!", NK_TEXT_CENTERED, (ivec3){0, 255, 0});
             gui_label(ctx, "Eine Kugel hat das Ziel erreicht!", NK_TEXT_CENTERED);
-        } else {
+        } else if (physics_isGameLost()) {
             gui_labelColor(ctx, "VERLOREN!", NK_TEXT_CENTERED, (ivec3){255, 0, 0});
             gui_label(ctx, "Alle Kugeln wurden verschluckt!", NK_TEXT_CENTERED);
         }
@@ -359,6 +361,7 @@ static void gui_renderGameStatus(ProgContext ctx) {
         gui_layoutRowDynamic(ctx, 40, 1);
         if (gui_button(ctx, "Neues Spiel")) {
             physics_resetGame();
+            g_showGameStatus = false;
         }
     }
     gui_end(ctx);

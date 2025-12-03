@@ -709,6 +709,12 @@ bool physics_isGameLost(void) {
 }
 
 void physics_resetGame(void) {
+    InputData *data = getInputData();
+
+    // Flags zurücksetzen
+    g_goal.reached = false;
+    data->game.paused = false;
+
     physics_init();
 }
 
