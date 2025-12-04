@@ -67,6 +67,331 @@ static void gui_renderHelp(ProgContext ctx, InputData* input) {
     input->showHelp = gui_widgetHelp(ctx, help, NK_LEN(help), nk_rect(x, y, width, height));
 }
 
+void renderCameraFlight(ProgContext ctx, InputData *input)
+{
+    if (gui_treePush(ctx, NK_TREE_TAB, "Camera Flight", NK_MINIMIZED))
+    {
+        gui_layoutRowDynamic(ctx, 25, 1);
+
+        if (gui_button(ctx, input->cam.isFlying ? "Flying..." : "Start Flight (C)"))
+        {
+            if (!input->cam.isFlying)
+            {
+                input->cam.isFlying = true;
+                input->cam.flight.t = 0.0f;
+            }
+        }
+
+        gui_checkbox(ctx, "Show Path (V)", &input->cam.flight.showPath);
+
+        gui_propertyFloat(ctx, "duration", 1.0f, &input->cam.flight.duration, 20.0f, 0.1f, 0.1f);
+
+        gui_treePop(ctx);
+    }
+}
+
+void renderControlPoints(ProgContext ctx, InputData *input)
+{
+    if (gui_treePush(ctx, NK_TREE_TAB, "Control Points", NK_MINIMIZED))
+    {
+        gui_layoutRowDynamic(ctx, 20, 1);
+
+        char infoStr[15];
+        snprintf(infoStr, 14, "Selected: %d", input->selection.selectedCp);
+        gui_labelColor(ctx, infoStr, NK_TEXT_CENTERED, (ivec3){100, 100, 255});
+
+        gui_layoutRowDynamic(ctx, 20, 2);
+        if (gui_button(ctx, "+"))
+        {
+            input->selection.selectedCp = (input->selection.selectedCp + input->selection.skipCnt) % input->surface.controlPoints.size;
+        }
+        if (gui_button(ctx, "-"))
+        {
+            input->selection.selectedCp = (input->selection.selectedCp - input->selection.skipCnt) % input->surface.controlPoints.size;
+        }
+
+        gui_layoutRowDynamic(ctx, 20, 1);
+        if (gui_button(ctx, "jump to center"))
+        {
+            input->selection.selectedCp = (int)((float)input->surface.controlPoints.size * 0.5f);
+        }
+
+        gui_propertyInt(ctx, "skip count", 1, &input->selection.skipCnt, 200, 1, 0.1f);
+        gui_propertyFloat(ctx, "height change", 0.01f, &input->selection.selectedYChange, 2, 0.01f, 0.01f);
+
+        gui_treePop(ctx);
+    }
+}
+
+void renderGame(ProgContext ctx, InputData *input)
+{
+    if (gui_treePush(ctx, NK_TREE_TAB, "Game", NK_MINIMIZED))
+    {
+
+        gui_layoutRowDynamic(ctx, 25, 1);
+
+        if (gui_button(ctx, "Reset Game"))
+        {
+            physics_resetGame();
+        }
+
+        gui_layoutRowDynamic(ctx, 25, 2);
+
+        if (gui_button(ctx, "Add Black Hole"))
+        {
+            physics_addBlackHole();
+        }
+
+        if (gui_button(ctx, "Remove Black Hole"))
+        {
+            physics_removeBlackHole();
+        }
+
+        gui_layoutRowDynamic(ctx, 25, 1);
+
+        char infoStr[50];
+        snprintf(infoStr, 49, "Active Balls: %d", physics_getBallCount());
+        gui_label(ctx, infoStr, NK_TEXT_LEFT);
+
+        snprintf(infoStr, 49, "Black Holes: %d", physics_getBlackHoleCount());
+        gui_label(ctx, infoStr, NK_TEXT_LEFT);
+
+        if (gui_treePush(ctx, NK_TREE_NODE, "Obstacles", NK_MINIMIZED))
+        {
+            gui_checkbox(ctx, "show", &input->game.showObstacles);
+            gui_propertyInt(ctx, "selected idx", 0, &input->game.selectedIdx, OBSTACLE_COUNT - 1, 1, 0.1f);
+
+            Obstacle *o = &input->game.obstacles[input->game.selectedIdx];
+            gui_propertyFloat(ctx, "T", 0.0f, &o->gT, 1.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "S", 0.0f, &o->gS, 1.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "width", 0.01f, &o->width, 1.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "length", 0.01f, &o->length, 1.0f, 0.0001f, 0.01f);
+
+            if (gui_button(ctx, "switch direction"))
+            {
+                float temp = o->length;
+                o->length = o->width;
+                o->width = temp;
+            }
+
+            logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
+
+            gui_treePop(ctx);
+        }
+
+        if (gui_treePush(ctx, NK_TREE_NODE, "Kick ball", NK_MINIMIZED))
+        {
+            if (gui_button(ctx, "kick"))
+            {
+                physics_kickBall();
+            }
+            gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.kickStrength, 50.0f, 0.0001f, 0.01f);
+            gui_treePop(ctx);
+        }
+
+        gui_treePop(ctx);
+    }
+}
+
+void renderSurface(ProgContext ctx, InputData *input)
+{
+    if (gui_treePush(ctx, NK_TREE_TAB, "Surface", NK_MINIMIZED))
+    {
+        gui_layoutRowDynamic(ctx, 25, 1);
+
+        int oldDim = input->surface.dimension;
+        gui_propertyInt(ctx, "dim", 4, &input->surface.dimension, 500, 1, 0.1f);
+        input->surface.dimensionChanged = oldDim != input->surface.dimension;
+
+        int oldRes = input->surface.resolution;
+        gui_propertyInt(ctx, "res", 2, &input->surface.resolution, 500, 1, 0.1f);
+        input->surface.resolutionChanged = oldRes != input->surface.resolution;
+
+        float oldOffset = input->surface.controlPointOffset;
+        gui_propertyFloat(ctx, "offset", 0, &input->surface.controlPointOffset, 2, 0.001f, 0.01f);
+        input->surface.offsetChanged = !glm_eq(oldOffset, input->surface.controlPointOffset);
+
+        gui_checkbox(ctx, "Control Points", &input->surface.showControlPoints);
+        gui_checkbox(ctx, "Surface", &input->surface.showSurface);
+        gui_checkbox(ctx, "Normals", &input->showNormals);
+        gui_checkbox(ctx, "Use Texture (T)", &input->surface.useTexture);
+
+        if (input->surface.useTexture)
+        {
+            gui_propertyInt(ctx, "Texture", 0, &input->surface.currentTextureIndex, 2, 1, 1);
+
+            float oldTiling = input->surface.textureTiling;
+            gui_propertyFloat(ctx, "Tiling", 0.5f, &input->surface.textureTiling, 20.0f, 0.1f, 0.1f);
+            if (!glm_eq(oldTiling, input->surface.textureTiling))
+            {
+                input->surface.resolutionChanged = true;
+            }
+        }
+
+        if (gui_button(ctx, "print polynomials"))
+        {
+            logic_printPolynomials();
+        }
+
+        gui_treePop(ctx);
+    }
+}
+
+void renderLight(ProgContext ctx, InputData *input)
+{
+    if (gui_treePush(ctx, NK_TREE_TAB, "Light", NK_MINIMIZED))
+    {
+        gui_layoutRowDynamic(ctx, 25, 1);
+
+        gui_checkbox(ctx, "enabled", &input->pointLight.enabled);
+        gui_checkbox(ctx, "visualize", &input->pointLight.visualize);
+        gui_widgetColor3(ctx, "color", input->pointLight.color);
+        gui_propertyFloat(ctx, "falloff constant", 0.0f, &input->pointLight.falloff[0], 10.0f, 0.0001f, 0.01f);
+        gui_propertyFloat(ctx, "falloff linear", 0.0f, &input->pointLight.falloff[1], 10.0f, 0.0001f, 0.01f);
+        gui_propertyFloat(ctx, "falloff quadratic", 0.0f, &input->pointLight.falloff[2], 10.0f, 0.0001f, 0.01f);
+        gui_propertyFloat(ctx, "ambient factor", 0.0f, &input->pointLight.ambientFactor, 1.0f, 0.0001f, 0.1f);
+        gui_propertyFloat(ctx, "speed", 0.0f, &input->pointLight.speed, 10.0f, 0.01f, 0.1f);
+        gui_propertyFloat(ctx, "radius", 0.001f, &input->pointLight.rotationRadius, 10.0f, 0.0001f, 0.01f);
+        gui_widgetVec3(ctx, "center", input->pointLight.center, 10.0f, 0.001f, 0.01f);
+
+        gui_treePop(ctx);
+    }
+}
+
+void renderPhysicConstants(ProgContext ctx, InputData *input)
+{
+    if (gui_treePush(ctx, NK_TREE_NODE, "Constants", NK_MAXIMIZED))
+    {
+        gui_propertyFloat(ctx, "gravity", 0.0f, &input->physics.gravity, 20.0f, 0.0001f, 0.01f);
+
+        if (gui_treePush(ctx, NK_TREE_NODE, "Kick ball", NK_MINIMIZED))
+        {
+            if (gui_button(ctx, "kick"))
+            {
+                physics_kickBall();
+            }
+            gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.kickStrength, 50.0f, 0.0001f, 0.01f);
+            gui_treePop(ctx);
+        }
+
+        if (gui_treePush(ctx, NK_TREE_NODE, "Ball", NK_MINIMIZED))
+        {
+            gui_checkbox(ctx, "enabled", &input->physics.ball.enabled);
+            gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.ball.damping, 2.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.ball.spring, 1000.0f, 0.0001f, 0.1f);
+            gui_propertyFloat(ctx, "mass", 0.0001f, &input->physics.mass, 500.0f, 0.0001f, 0.1f);
+            gui_propertyFloat(ctx, "friction", 0.1f, &input->physics.frictionFactor, 1.0f, 0.0001f, 0.01f);
+            gui_treePop(ctx);
+        }
+
+        if (gui_treePush(ctx, NK_TREE_NODE, "Wall", NK_MINIMIZED))
+        {
+            gui_checkbox(ctx, "enabled", &input->physics.wall.enabled);
+            gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.wall.damping, 2.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.wall.spring, 1000.0f, 0.0001f, 0.1f);
+            gui_treePop(ctx);
+        }
+
+        if (gui_treePush(ctx, NK_TREE_NODE, "Obstacle", NK_MINIMIZED))
+        {
+            gui_checkbox(ctx, "enabled", &input->physics.obs.enabled);
+            gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.obs.damping, 2.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.obs.spring, 1000.0f, 0.0001f, 0.1f);
+            gui_treePop(ctx);
+        }
+
+        if (gui_treePush(ctx, NK_TREE_NODE, "Black Holes", NK_MINIMIZED))
+        {
+            gui_propertyFloat(ctx, "radius", 0.0001f, &input->physics.blackHoleRadius, 2.0f, 0.0001f, 0.01f);
+            gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.blackHoleStrength, 50.0f, 0.0001f, 0.1f);
+            gui_treePop(ctx);
+        }
+
+        gui_treePop(ctx);
+    }
+}
+
+void renderPhysics(ProgContext ctx, InputData *input)
+{
+    if (gui_treePush(ctx, NK_TREE_TAB, "Physics", NK_MAXIMIZED))
+    {
+        gui_layoutRowDynamic(ctx, 25, 1);
+
+        if (gui_button(ctx, "reset"))
+        {
+            physics_init();
+        }
+
+        gui_layoutRowDynamic(ctx, 25, 2);
+
+        if (gui_button(ctx, "diagonal"))
+        {
+            physics_orderBallsDiagonally();
+        }
+
+        if (gui_button(ctx, "random"))
+        {
+            physics_orderBallsRandom();
+        }
+
+        if (gui_button(ctx, "around max"))
+        {
+            physics_orderBallsAroundMax();
+        }
+
+        gui_propertyFloat(ctx, "radius", 0.001f, &input->physics.ballSpawnRadius, 100.0f, 0.0001f, 0.01f);
+
+        if (gui_button(ctx, "Add Ball"))
+        {
+            physics_addBall();
+        }
+
+        if (gui_button(ctx, "Remove Ball"))
+        {
+            physics_removeBall();
+        }
+
+        gui_layoutRowDynamic(ctx, 25, 1);
+
+        gui_propertyFloat(ctx, "fixed dt", 0.0001f, &input->physics.fixedDt, 1.0f, 0.0001f, 0.001f);
+
+        gui_propertyFloat(ctx, "ball radius", 0.0001f, &input->physics.ballRadius, 20.0f, 0.0001f, 0.01f);
+
+        renderPhysicConstants(ctx, input);
+
+        gui_treePop(ctx);
+    }
+}
+
+void renderGeneral(ProgContext ctx, InputData *input)
+{
+    if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MINIMIZED))
+    {
+        gui_layoutRowDynamic(ctx, 20, 2);
+
+        if (gui_button(ctx, "Help"))
+        {
+            input->showHelp = !input->showHelp;
+        }
+
+        if (gui_button(ctx, input->isFullscreen ? "Window" : "Fullscreen"))
+        {
+            input->isFullscreen = !input->isFullscreen;
+            window_setFullscreen(ctx, input->isFullscreen);
+        }
+
+        gui_layoutRowDynamic(ctx, 20, 1);
+        if (gui_button(ctx, input->paused ? "unpause" : "pause"))
+        {
+            input->paused = !input->paused;
+        }
+
+        gui_checkbox(ctx, "Wireframe", &input->showWireframe);
+
+        gui_treePop(ctx);
+    }
+}
+
 /**
  * Renders the main settings menu window with collapsible sections.
  */
@@ -84,268 +409,19 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
         NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
     {
-        if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MINIMIZED)){
-            gui_layoutRowDynamic(ctx, 20, 2);
+        renderGeneral(ctx, input);
 
-            if (gui_button(ctx, "Help")) {
-                input->showHelp = !input->showHelp;
-            }
+        renderPhysics(ctx, input);
 
-            if (gui_button(ctx, input->isFullscreen ? "Window" : "Fullscreen")){
-                input->isFullscreen = !input->isFullscreen;
-                window_setFullscreen(ctx, input->isFullscreen);
-            }
+        renderLight(ctx, input);
 
-            gui_layoutRowDynamic(ctx, 20, 1);
-            if (gui_button(ctx, input->paused ? "unpause" : "pause")) {
-                input->paused = !input->paused;
-            }
+        renderSurface(ctx, input);
 
-            gui_checkbox(ctx, "Wireframe", &input->showWireframe);
+        renderGame(ctx, input);
 
-            gui_treePop(ctx);
-        }
+        renderControlPoints(ctx, input);
 
-        if (gui_treePush(ctx, NK_TREE_TAB, "Physics", NK_MAXIMIZED)) {
-            gui_layoutRowDynamic(ctx, 25, 1);
-
-            if (gui_button(ctx, "reset")) {
-                physics_init();
-            }
-
-            gui_layoutRowDynamic(ctx, 25, 2);
-
-            if (gui_button(ctx, "diagonal")) {
-                physics_orderBallsDiagonally();
-            }
-
-            if (gui_button(ctx, "random")) {
-                physics_orderBallsRandom();
-            }
-
-            if (gui_button(ctx, "around max")) {
-                physics_orderBallsAroundMax();
-            }
-
-            gui_propertyFloat(ctx, "radius", 0.001f, &input->physics.ballSpawnRadius, 100.0f, 0.0001f, 0.01f);
-
-            if (gui_button(ctx, "Add Ball")) {
-                physics_addBall();
-            }
-
-            if (gui_button(ctx, "Remove Ball")) {
-                physics_removeBall();
-            }
-
-            gui_layoutRowDynamic(ctx, 25, 1);
-
-            gui_propertyFloat(ctx, "fixed dt", 0.0001f, &input->physics.fixedDt, 1.0f, 0.0001f, 0.001f);
-
-            gui_propertyFloat(ctx, "ball radius", 0.0001f, &input->physics.ballRadius, 20.0f, 0.0001f, 0.01f);
-
-            if (gui_treePush(ctx, NK_TREE_NODE, "Constants", NK_MAXIMIZED)) {
-                gui_propertyFloat(ctx, "gravity", 0.0f, &input->physics.gravity, 20.0f, 0.0001f, 0.01f);
-
-                if (gui_treePush(ctx, NK_TREE_NODE, "Kick ball", NK_MINIMIZED)) {
-                    if (gui_button(ctx, "kick")) {
-                        physics_kickBall();
-                    }
-                    gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.kickStrength, 50.0f, 0.0001f, 0.01f);
-                    gui_treePop(ctx);
-                }
-                
-                if (gui_treePush(ctx, NK_TREE_NODE, "Ball", NK_MINIMIZED)) {
-                    gui_checkbox(ctx, "enabled", &input->physics.ball.enabled);
-                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.ball.damping, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.ball.spring, 1000.0f, 0.0001f, 0.1f);
-                    gui_propertyFloat(ctx, "mass", 0.0001f, &input->physics.mass, 500.0f, 0.0001f, 0.1f);
-                    gui_propertyFloat(ctx, "friction", 0.1f, &input->physics.frictionFactor, 1.0f, 0.0001f, 0.01f);
-                    gui_treePop(ctx);
-                }
-
-                if (gui_treePush(ctx, NK_TREE_NODE, "Wall", NK_MINIMIZED)) {
-                    gui_checkbox(ctx, "enabled", &input->physics.wall.enabled);
-                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.wall.damping, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.wall.spring, 1000.0f, 0.0001f, 0.1f);
-                    gui_treePop(ctx);
-                }
-
-                if (gui_treePush(ctx, NK_TREE_NODE, "Obstacle", NK_MINIMIZED)) {
-                    gui_checkbox(ctx, "enabled", &input->physics.obs.enabled);
-                    gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.obs.damping, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.obs.spring, 1000.0f, 0.0001f, 0.1f);
-                    gui_treePop(ctx);
-                }
-
-                if (gui_treePush(ctx, NK_TREE_NODE, "Black Holes", NK_MINIMIZED)) {
-                    gui_propertyFloat(ctx, "radius", 0.0001f, &input->physics.blackHoleRadius, 2.0f, 0.0001f, 0.01f);
-                    gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.blackHoleStrength, 50.0f, 0.0001f, 0.1f);
-                    gui_treePop(ctx);
-                }
-
-                gui_treePop(ctx);
-            }
-
-            gui_treePop(ctx);
-        }
-
-        if (gui_treePush(ctx, NK_TREE_TAB, "Light", NK_MINIMIZED)) {
-            gui_layoutRowDynamic(ctx, 25, 1);
-
-            gui_checkbox(ctx, "enabled", &input->pointLight.enabled);
-            gui_checkbox(ctx, "visualize", &input->pointLight.visualize);
-            gui_widgetColor3(ctx, "color", input->pointLight.color);
-            gui_propertyFloat(ctx, "falloff constant", 0.0f, &input->pointLight.falloff[0], 10.0f, 0.0001f, 0.01f);
-            gui_propertyFloat(ctx, "falloff linear", 0.0f, &input->pointLight.falloff[1], 10.0f, 0.0001f, 0.01f);
-            gui_propertyFloat(ctx, "falloff quadratic", 0.0f, &input->pointLight.falloff[2], 10.0f, 0.0001f, 0.01f);
-            gui_propertyFloat(ctx, "ambient factor", 0.0f, &input->pointLight.ambientFactor, 1.0f, 0.0001f, 0.1f);
-            gui_propertyFloat(ctx, "speed", 0.0f, &input->pointLight.speed, 10.0f, 0.01f, 0.1f);
-            gui_propertyFloat(ctx, "radius", 0.001f, &input->pointLight.rotationRadius, 10.0f, 0.0001f, 0.01f);
-            gui_widgetVec3(ctx, "center", input->pointLight.center, 10.0f, 0.001f, 0.01f);
-
-            gui_treePop(ctx);
-        }
-
-        if (gui_treePush(ctx, NK_TREE_TAB, "Surface", NK_MINIMIZED)) {
-            gui_layoutRowDynamic(ctx, 25, 1);
-
-            int oldDim = input->surface.dimension;
-            gui_propertyInt(ctx, "dim", 4, &input->surface.dimension, 500, 1, 0.1f);
-            input->surface.dimensionChanged = oldDim != input->surface.dimension;
-
-            int oldRes = input->surface.resolution;
-            gui_propertyInt(ctx, "res", 2, &input->surface.resolution, 500, 1, 0.1f);
-            input->surface.resolutionChanged = oldRes != input->surface.resolution;
-
-            float oldOffset = input->surface.controlPointOffset;
-            gui_propertyFloat(ctx, "offset", 0, &input->surface.controlPointOffset, 2, 0.001f, 0.01f);
-            input->surface.offsetChanged = !glm_eq(oldOffset, input->surface.controlPointOffset);
-
-            gui_checkbox(ctx, "Control Points", &input->surface.showControlPoints);
-            gui_checkbox(ctx, "Surface", &input->surface.showSurface);
-            gui_checkbox(ctx, "Normals", &input->showNormals);
-            gui_checkbox(ctx, "Use Texture (T)", &input->surface.useTexture);
-
-            if (input->surface.useTexture) {
-                gui_propertyInt(ctx, "Texture", 0, &input->surface.currentTextureIndex, 2, 1, 1);
-
-                float oldTiling = input->surface.textureTiling;
-                gui_propertyFloat(ctx, "Tiling", 0.5f, &input->surface.textureTiling, 20.0f, 0.1f, 0.1f);
-                if (!glm_eq(oldTiling, input->surface.textureTiling)) {
-                    input->surface.resolutionChanged = true;
-                }
-            }
-
-            if (gui_button(ctx, "print polynomials")) {
-                logic_printPolynomials();
-            }
-
-            gui_treePop(ctx);
-        }
-
-        if (gui_treePush(ctx, NK_TREE_TAB, "Game", NK_MINIMIZED)) {
-
-            gui_layoutRowDynamic(ctx, 25, 1);
-
-            if (gui_button(ctx, "Reset Game")) {
-                physics_resetGame();
-            }
-
-            gui_layoutRowDynamic(ctx, 25, 2);
-
-            if (gui_button(ctx, "Add Black Hole")) {
-                physics_addBlackHole();
-            }
-
-            if (gui_button(ctx, "Remove Black Hole")) {
-                physics_removeBlackHole();
-            }
-
-            gui_layoutRowDynamic(ctx, 25, 1);
-
-            char infoStr[50];
-            snprintf(infoStr, 49, "Active Balls: %d", physics_getBallCount());
-            gui_label(ctx, infoStr, NK_TEXT_LEFT);
-
-            snprintf(infoStr, 49, "Black Holes: %d", physics_getBlackHoleCount());
-            gui_label(ctx, infoStr, NK_TEXT_LEFT);
-
-            if (gui_treePush(ctx, NK_TREE_NODE, "Obstacles", NK_MINIMIZED)) {
-                gui_checkbox(ctx, "show", &input->game.showObstacles);
-                gui_propertyInt(ctx, "selected idx", 0, &input->game.selectedIdx, OBSTACLE_COUNT - 1, 1, 0.1f);
-
-                Obstacle *o = &input->game.obstacles[input->game.selectedIdx];
-                gui_propertyFloat(ctx, "T", 0.0f, &o->gT, 1.0f, 0.0001f, 0.01f);
-                gui_propertyFloat(ctx, "S", 0.0f, &o->gS, 1.0f, 0.0001f, 0.01f);
-                gui_propertyFloat(ctx, "width", 0.01f, &o->width, 1.0f, 0.0001f, 0.01f);
-                gui_propertyFloat(ctx, "length", 0.01f, &o->length, 1.0f, 0.0001f, 0.01f);
-
-                if (gui_button(ctx, "switch direction")) {
-                    float temp = o->length;
-                    o->length = o->width;
-                    o->width = temp;
-                }
-
-                logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
-
-                gui_treePop(ctx);
-            }
-
-            if (gui_treePush(ctx, NK_TREE_NODE, "Kick ball", NK_MINIMIZED)) {
-                if (gui_button(ctx, "kick")) {
-                    physics_kickBall();
-                }
-                gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.kickStrength, 50.0f, 0.0001f, 0.01f);
-                gui_treePop(ctx);
-            }
-
-            gui_treePop(ctx);
-        }
-
-        if (gui_treePush(ctx, NK_TREE_TAB, "Control Points", NK_MINIMIZED)){
-            gui_layoutRowDynamic(ctx, 20, 1);
-
-            char infoStr[15];
-            snprintf(infoStr, 14, "Selected: %d", input->selection.selectedCp);
-            gui_labelColor(ctx, infoStr, NK_TEXT_CENTERED, (ivec3){100, 100, 255});
-
-            gui_layoutRowDynamic(ctx, 20, 2);
-            if (gui_button(ctx, "+")) {
-                input->selection.selectedCp = (input->selection.selectedCp + input->selection.skipCnt)
-                % input->surface.controlPoints.size;
-            }
-            if (gui_button(ctx, "-")) {
-                input->selection.selectedCp = (input->selection.selectedCp - input->selection.skipCnt)
-                % input->surface.controlPoints.size;
-            }
-
-            gui_layoutRowDynamic(ctx, 20, 1);
-            if (gui_button(ctx, "jump to center")) {
-                input->selection.selectedCp = (int) ((float) input->surface.controlPoints.size * 0.5f);
-            }
-
-            gui_propertyInt(ctx, "skip count", 1, &input->selection.skipCnt, 200, 1, 0.1f);
-            gui_propertyFloat(ctx, "height change", 0.01f, &input->selection.selectedYChange, 2, 0.01f, 0.01f);
-
-            gui_treePop(ctx);
-        }
-
-        if (gui_treePush(ctx, NK_TREE_TAB, "Camera Flight", NK_MINIMIZED)) {
-            gui_layoutRowDynamic(ctx, 25, 1);
-
-            if (gui_button(ctx, input->cam.isFlying ? "Flying..." : "Start Flight (C)")) {
-                if (!input->cam.isFlying) {
-                    input->cam.isFlying = true;
-                    input->cam.flight.t = 0.0f;
-                }
-            }
-
-            gui_checkbox(ctx, "Show Path (V)", &input->cam.flight.showPath);
-
-            gui_propertyFloat(ctx, "duration", 1.0f, &input->cam.flight.duration, 20.0f, 0.1f, 0.1f);
-
-            gui_treePop(ctx);
-        }
+        renderCameraFlight(ctx, input);
     }
     gui_end(ctx);
 }
@@ -385,7 +461,7 @@ static void gui_renderGameStatus(ProgContext ctx) {
             g_showGameStatus = false;
         }
     }
-    
+
     gui_end(ctx);
 }
 

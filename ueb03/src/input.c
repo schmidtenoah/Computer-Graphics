@@ -256,7 +256,7 @@ void input_init(ProgContext ctx) {
     g_input.physics.blackHoleRadius = 0.15f;
     g_input.physics.blackHoleStrength = 5.0f;
     g_input.physics.blackHoleCaptureRadius = 0.1f;
-    g_input.physics.kickStrength = 3.0f;
+    g_input.physics.kickStrength = 0.75;
 
     g_input.physics.ball.damping = BALL_DAMPING;
     g_input.physics.ball.spring = BALL_SPRING_CONSTANT;

@@ -453,12 +453,25 @@ static void updateBalls(InputData *data) {
     }
 }
 
+static void randomizeObstacles(InputData *data) {
+    for (int i = 0; i < OBSTACLE_COUNT; ++i) {
+        Obstacle *o = &data->game.obstacles[i];
+
+        bool isParallel = (i >= 4);
+        o->gS = RAND01;
+        o->gT = RAND01;
+        o->width = isParallel ? 0.2f : 0.05f;
+        o->length = isParallel ? 0.05f : 0.2f;
+        o->height = OBSTACLE_HEIGHT;
+        logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
+    }
+}
+
 ////////////////////////    PUBLIC    ////////////////////////////
 
 void physics_init(void) {
     InputData *data = getInputData();
     data->physics.dtAccumulator = 0.0f;
-    //float radius = data->physics.ballRadius;
     g_balls.size = DEFAULT_BALL_NUM;
 
     physics_orderBallsAroundMax();
@@ -468,6 +481,7 @@ void physics_init(void) {
     BlackHoleArr_init(&g_blackHoles);
     initBlackHoles();
     initGoal();
+    randomizeObstacles(data);
 }
 
 void physics_addBall(void) {
@@ -496,14 +510,12 @@ void physics_addBlackHole(void) {
 }
 
 void physics_removeBlackHole(void) {
-    if (g_blackHoles.size > 0) {
-        BlackHoleArr_popBack(&g_blackHoles);
-    }
+    BlackHoleArr_popBack(&g_blackHoles);
 }
 
 void physics_update(void) {
     InputData *data = getInputData();
-    if (data->game.paused) {
+    if (data->game.paused || data->paused) {
         return;
     }
 
@@ -724,7 +736,7 @@ void physics_kickBall(void) {
     if (data->game.paused || data->paused) {
         return;
     }
-    
+
     Ball *b = NULL;
     for (int i = 0; i < g_balls.size && b == NULL; ++i) {
         if (g_balls.data[i].active) {

@@ -342,7 +342,6 @@ static float evalSurfaceAt(int dimension, float T_s, float T_t) {
 static void updateObstacles(InputData *data) {
     for (int i = 0; i < OBSTACLE_COUNT; ++i) {
         Obstacle *o = &data->game.obstacles[i];
-
         logic_evalSplineGlobal(o->gT, o->gS, o->center, o->normal);
     }
 }
