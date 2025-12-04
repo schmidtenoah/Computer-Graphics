@@ -75,9 +75,9 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
         return;
     }
 
-    int w;
-    window_getRealSize(ctx, &w, NULL);
-    float height = 0.7f * w;
+    int h;
+    window_getRealSize(ctx, NULL, &h);
+    float height = 0.95f * h;
 
     if (gui_beginTitled(ctx, GUI_WINDOW_MENU, "Settings",
         nk_rect(15, 15, 250, height),
@@ -145,13 +145,21 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
 
             if (gui_treePush(ctx, NK_TREE_NODE, "Constants", NK_MAXIMIZED)) {
                 gui_propertyFloat(ctx, "gravity", 0.0f, &input->physics.gravity, 20.0f, 0.0001f, 0.01f);
-                gui_propertyFloat(ctx, "mass", 0.0001f, &input->physics.mass, 500.0f, 0.0001f, 0.1f);
-                gui_propertyFloat(ctx, "friction", 0.1f, &input->physics.frictionFactor, 1.0f, 0.0001f, 0.01f);
 
+                if (gui_treePush(ctx, NK_TREE_NODE, "Kick ball", NK_MINIMIZED)) {
+                    if (gui_button(ctx, "kick")) {
+                        physics_kickBall();
+                    }
+                    gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.kickStrength, 50.0f, 0.0001f, 0.01f);
+                    gui_treePop(ctx);
+                }
+                
                 if (gui_treePush(ctx, NK_TREE_NODE, "Ball", NK_MINIMIZED)) {
                     gui_checkbox(ctx, "enabled", &input->physics.ball.enabled);
                     gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.ball.damping, 2.0f, 0.0001f, 0.01f);
                     gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.ball.spring, 1000.0f, 0.0001f, 0.1f);
+                    gui_propertyFloat(ctx, "mass", 0.0001f, &input->physics.mass, 500.0f, 0.0001f, 0.1f);
+                    gui_propertyFloat(ctx, "friction", 0.1f, &input->physics.frictionFactor, 1.0f, 0.0001f, 0.01f);
                     gui_treePop(ctx);
                 }
 
@@ -166,6 +174,12 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                     gui_checkbox(ctx, "enabled", &input->physics.obs.enabled);
                     gui_propertyFloat(ctx, "damping", 0.0001f, &input->physics.obs.damping, 2.0f, 0.0001f, 0.01f);
                     gui_propertyFloat(ctx, "spring", 0.0001f, &input->physics.obs.spring, 1000.0f, 0.0001f, 0.1f);
+                    gui_treePop(ctx);
+                }
+
+                if (gui_treePush(ctx, NK_TREE_NODE, "Black Holes", NK_MINIMIZED)) {
+                    gui_propertyFloat(ctx, "radius", 0.0001f, &input->physics.blackHoleRadius, 2.0f, 0.0001f, 0.01f);
+                    gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.blackHoleStrength, 50.0f, 0.0001f, 0.1f);
                     gui_treePop(ctx);
                 }
 
@@ -277,6 +291,14 @@ static void gui_renderMenu(ProgContext ctx, InputData* input) {
                 gui_treePop(ctx);
             }
 
+            if (gui_treePush(ctx, NK_TREE_NODE, "Kick ball", NK_MINIMIZED)) {
+                if (gui_button(ctx, "kick")) {
+                    physics_kickBall();
+                }
+                gui_propertyFloat(ctx, "strength", 0.0001f, &input->physics.kickStrength, 50.0f, 0.0001f, 0.01f);
+                gui_treePop(ctx);
+            }
+
             gui_treePop(ctx);
         }
 
@@ -335,7 +357,6 @@ static void gui_renderGameStatus(ProgContext ctx) {
     int w, h;
     window_getRealSize(ctx, &w, &h);
 
-    // Status-Fenster anzeigen wenn Spiel vorbei
     if ((physics_isGameWon() || physics_isGameLost()) && !g_showGameStatus) {
         g_showGameStatus = true;
     }
@@ -351,19 +372,20 @@ static void gui_renderGameStatus(ProgContext ctx) {
         gui_layoutRowDynamic(ctx, 30, 1);
 
         if (physics_isGameWon()) {
-            gui_labelColor(ctx, "GEWONNEN!", NK_TEXT_CENTERED, (ivec3){0, 255, 0});
-            gui_label(ctx, "Eine Kugel hat das Ziel erreicht!", NK_TEXT_CENTERED);
+            gui_labelColor(ctx, "WON!", NK_TEXT_CENTERED, (ivec3){0, 255, 0});
+            gui_label(ctx, "A Ball Reached The Goal!", NK_TEXT_CENTERED);
         } else if (physics_isGameLost()) {
-            gui_labelColor(ctx, "VERLOREN!", NK_TEXT_CENTERED, (ivec3){255, 0, 0});
-            gui_label(ctx, "Alle Kugeln wurden verschluckt!", NK_TEXT_CENTERED);
+            gui_labelColor(ctx, "LOST!", NK_TEXT_CENTERED, (ivec3){255, 0, 0});
+            gui_label(ctx, "All Balls have been swallowed!", NK_TEXT_CENTERED);
         }
 
         gui_layoutRowDynamic(ctx, 40, 1);
-        if (gui_button(ctx, "Neues Spiel")) {
+        if (gui_button(ctx, "New Game")) {
             physics_resetGame();
             g_showGameStatus = false;
         }
     }
+    
     gui_end(ctx);
 }
 
@@ -401,9 +423,9 @@ static void gui_renderCameraControls(ProgContext ctx, InputData* input) {
 
 ////////////////////////     PUBLIC    ////////////////////////////
 
-void gui_renderContent(ProgContext ctx)
-{
+void gui_renderContent(ProgContext ctx) {
     InputData* input = getInputData();
+
     gui_renderHelp(ctx, input);
     gui_renderMenu(ctx, input);
     gui_renderGameStatus(ctx);

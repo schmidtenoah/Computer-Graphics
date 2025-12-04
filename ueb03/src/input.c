@@ -104,7 +104,6 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             break;
 
         case GLFW_KEY_G:
-            // Reset game
             physics_resetGame();
             break;
 
@@ -254,6 +253,10 @@ void input_init(ProgContext ctx) {
     g_input.physics.ballRadius = DEFAULT_BALL_RADIUS;
     g_input.physics.frictionFactor = FRICTION_FACTOR;
     g_input.physics.ballSpawnRadius = 1.0f;
+    g_input.physics.blackHoleRadius = 0.15f;
+    g_input.physics.blackHoleStrength = 5.0f;
+    g_input.physics.blackHoleCaptureRadius = 0.1f;
+    g_input.physics.kickStrength = 3.0f;
 
     g_input.physics.ball.damping = BALL_DAMPING;
     g_input.physics.ball.spring = BALL_SPRING_CONSTANT;

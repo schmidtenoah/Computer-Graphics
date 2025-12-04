@@ -19,9 +19,6 @@
 #define DEFAULT_BALL_VELOCITY {0, 0, 0}
 #define DEFAULT_BALL_ACCELERATION {0, 0, 0}
 #define DEFAULT_BLACKHOLE_COUNT 5
-#define BLACKHOLE_RADIUS 0.15f
-#define BLACKHOLE_STRENGTH 5.0f
-#define BLACKHOLE_CAPTURE_RADIUS 0.1f
 #define GOAL_RADIUS 0.3f
 
 #define DEFAULT_BALL(idx) {                     \
@@ -33,6 +30,10 @@
     },                                          \
     .active = true                              \
 }
+
+typedef struct {
+    vec3 position;
+} BlackHole;
 
 typedef struct {
     vec3 normal;
@@ -50,7 +51,7 @@ typedef struct {
     vec3 acceleration;
     vec3 velocity;
     ContactInfo contact;
-    bool active;  // false wenn von schwarzem Loch verschluckt
+    bool active;
 } Ball;
 
 DEFINE_ARRAY_TYPE(Ball, BallArr);
@@ -86,11 +87,11 @@ static const Material BALL_MAT = {
 
 static const Material BLACKHOLE_MAT = {
     .ambient = {0.0f, 0.0f, 0.0f},
-    .diffuse = {0.1f, 0.1f, 0.1f},
+    .diffuse = {0.1f, 0.0f, 0.1f},
     .emission = {0.0f, 0.0f, 0.0f},
     .specular = {0.0f, 0.0f, 0.0f},
     .shininess = 10.0f,
-    .alpha = 1.0f
+    .alpha = 0.9f
 };
 
 static const Material GOAL_MAT = {
@@ -99,7 +100,7 @@ static const Material GOAL_MAT = {
     .emission = {0.0f, 0.2f, 0.0f},
     .specular = {0.2f, 0.2f, 0.2f},
     .shininess = 100.0f,
-    .alpha = 0.5f  // Halbtransparent
+    .alpha = 0.5f
 };
 
 ////////////////////////    LOCAL    ////////////////////////////
@@ -131,16 +132,12 @@ static void initBlackHoles(void) {
 
     for (int i = 0; i < DEFAULT_BLACKHOLE_COUNT; i++) {
         BlackHole bh;
-        bh.radius = BLACKHOLE_RADIUS;
-        bh.strength = BLACKHOLE_STRENGTH;
 
-        // Zufällige Position
         float s = 0.05f + RAND01 * 0.95f;
         float t = 0.05f + RAND01 * 0.95f;
 
         vec3 normal;
         logic_evalSplineGlobal(t, s, bh.position, normal);
-
         BlackHoleArr_push(&g_blackHoles, bh);
     }
 }
@@ -148,11 +145,17 @@ static void initBlackHoles(void) {
 static void initGoal(void) {
     InputData *data = getInputData();
 
-    // Ziel am unteren Ende (minPoint)
     vec3 goalPos, normal;
-    glm_vec3_copy(data->surface.minPoint, goalPos);
+    if (glm_vec3_eqv_eps(data->surface.minPoint, data->surface.maxPoint)) {
+        glm_vec3_copy(
+            data->surface.controlPoints.data[data->surface.controlPoints.size - 1], 
+            goalPos
+        );
+    } else {
+        glm_vec3_copy(data->surface.minPoint, goalPos);
+    }
 
-    // Position leicht über der Oberfläche für bessere Sichtbarkeit
+    // Position slightly above surface for better visibility
     float s, t;
     logic_closestSplinePointTo(goalPos, &s, &t);
     logic_evalSplineGlobal(t, s, g_goal.position, normal);
@@ -338,8 +341,12 @@ static void handleObstacleCollisions(InputData *data, Ball *b) {
     }
 }
 
-static void handleBlackHoleAttraction(Ball *b, float ballMass) {
+static void handleBlackHoleAttraction(InputData *data, Ball *b) {
     assert(b != NULL);
+    float ballMass = data->physics.mass;
+    float captureRadius = data->physics.blackHoleCaptureRadius;
+    float holeStrength = data->physics.blackHoleStrength;
+    float holeRadius = data->physics.blackHoleRadius;
 
     for (int i = 0; i < g_blackHoles.size; i++) {
         BlackHole *bh = &g_blackHoles.data[i];
@@ -348,24 +355,22 @@ static void handleBlackHoleAttraction(Ball *b, float ballMass) {
         glm_vec3_sub(bh->position, b->center, toBlackHole);
         float dist = glm_vec3_norm(toBlackHole);
 
-        // Prüfen ob Kugel verschluckt wird
-        if (dist < BLACKHOLE_CAPTURE_RADIUS) {
+        // Check if ball has been swallowed
+        if (dist < captureRadius) {
             b->active = false;
             return;
         }
 
-        // Anziehung innerhalb des Wirkungsradius
-        if (dist < bh->radius && dist > 0.0001f) {
+        if (dist < holeRadius && dist > 0.0001f) {
             vec3 direction;
             glm_vec3_normalize_to(toBlackHole, direction);
 
-            // Anziehungskraft: F = strength / dist²
-            float forceMagnitude = bh->strength / (dist * dist);
+            // Attraction Force: F = strength / dist²
+            float forceMagnitude = holeStrength / (dist * dist);
 
-            // Beschleunigung: a = F / m
+            // accelleration: a = F / m
             vec3 attraction;
             glm_vec3_scale(direction, forceMagnitude / ballMass, attraction);
-
             glm_vec3_add(b->acceleration, attraction, b->acceleration);
         }
     }
@@ -374,7 +379,9 @@ static void handleBlackHoleAttraction(Ball *b, float ballMass) {
 static void checkGoalReached(Ball *b) {
     assert(b != NULL);
 
-    if (g_goal.reached) return;
+    if (g_goal.reached) {
+        return;
+    }
 
     vec3 toGoal;
     glm_vec3_sub(g_goal.position, b->center, toGoal);
@@ -435,7 +442,7 @@ static void updateBalls(InputData *data) {
         handleWallCollision(data, b);
         handleBallCollisions(data, b, i);
         handleObstacleCollisions(data, b);
-        handleBlackHoleAttraction(b, mass);
+        handleBlackHoleAttraction(data, b);
     }
 
     // integrate with new acceleration
@@ -451,21 +458,10 @@ static void updateBalls(InputData *data) {
 void physics_init(void) {
     InputData *data = getInputData();
     data->physics.dtAccumulator = 0.0f;
-    float radius = data->physics.ballRadius;
+    //float radius = data->physics.ballRadius;
+    g_balls.size = DEFAULT_BALL_NUM;
 
-    BallArr_free(&g_balls);
-    BallArr_init(&g_balls);
-    BallArr_reserve(&g_balls, DEFAULT_BALL_NUM);
-
-    for (int i = 0; i < DEFAULT_BALL_NUM; ++i) {
-        Ball b = DEFAULT_BALL(i);
-
-        logic_evalSplineGlobal(b.contact.t, b.contact.s, b.contact.point, b.contact.normal);
-        applyContactPoint(&b, radius);
-
-        BallArr_push(&g_balls, b);
-    }
-
+    physics_orderBallsAroundMax();
     initWalls();
 
     BlackHoleArr_free(&g_blackHoles);
@@ -475,7 +471,7 @@ void physics_init(void) {
 }
 
 void physics_addBall(void) {
-    Ball b = DEFAULT_BALL((float) DEFAULT_BALL_NUM * 0.5f);
+    Ball b = DEFAULT_BALL((float) DEFAULT_BALL_NUM * RAND01);
 
     logic_evalSplineGlobal(b.contact.t, b.contact.s, b.contact.point, b.contact.normal);
     applyContactPoint(&b, getInputData()->physics.ballRadius);
@@ -489,11 +485,8 @@ void physics_removeBall(void) {
 
 void physics_addBlackHole(void) {
     BlackHole bh;
-    bh.radius = BLACKHOLE_RADIUS;
-    bh.strength = BLACKHOLE_STRENGTH;
 
-    // Zufällige Position - gerade 90% der Fläche, dass nicht zu weit außen
-    float s = 0.05f + RAND01 * 0.9f; // 0.05 bis 0.95
+    float s = 0.05f + RAND01 * 0.9f;
     float t = 0.1f + RAND01 * 0.9f;
 
     vec3 normal;
@@ -560,6 +553,7 @@ void physics_drawBlackHoles(void) {
 
     InputData *data = getInputData();
     bool showNormals = data->showNormals;
+    glEnable(GL_BLEND);
 
     mat4 modelviewMat, viewMat;
     scene_getMV(viewMat);
@@ -568,13 +562,14 @@ void physics_drawBlackHoles(void) {
         scene_pushMatrix();
 
         scene_translateV(g_blackHoles.data[i].position);
-        scene_scaleV(VEC3X(BLACKHOLE_RADIUS * 0.7f));  // Etwas kleiner als Wirkungsradius
+        scene_scaleV(VEC3X(data->physics.blackHoleRadius * 0.7f));
         scene_getMV(modelviewMat);
 
         model_draw(MODEL_SPHERE, &BLACKHOLE_MAT, showNormals, &viewMat, &modelviewMat);
         scene_popMatrix();
     }
 
+    glDisable(GL_BLEND);
     debug_popRenderScope();
 }
 
@@ -587,11 +582,7 @@ void physics_drawGoal(void) {
     mat4 modelviewMat, viewMat;
     scene_getMV(viewMat);
 
-    // Transparenz aktivieren für Ziel
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE);  // Keine Tiefenschreibung für transparente Objekte
-
     scene_pushMatrix();
 
     scene_translateV(g_goal.position);
@@ -601,9 +592,7 @@ void physics_drawGoal(void) {
     model_draw(MODEL_SPHERE, &GOAL_MAT, showNormals, &viewMat, &modelviewMat);
     scene_popMatrix();
 
-    glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
-
     debug_popRenderScope();
 }
 
@@ -664,6 +653,8 @@ void physics_orderBallsAroundMax(void) {
 
     vec3 maxPoint;
     glm_vec3_copy(data->surface.maxPoint, maxPoint);
+    maxPoint[0] = glm_clamp(maxPoint[0], 0.5f, 500.0f);
+    maxPoint[2] = glm_clamp(maxPoint[2], 0.5f, 500.0f);
 
     for (int i = 0; i < count; ++i) {
         Ball b = DEFAULT_BALL(i);
@@ -698,7 +689,7 @@ bool physics_isGameWon(void) {
 }
 
 bool physics_isGameLost(void) {
-    // Spiel verloren wenn alle Kugeln verschluckt wurden
+    // Game lost when all balls are inside black holes
     int activeBalls = 0;
     for (int i = 0; i < g_balls.size; i++) {
         if (g_balls.data[i].active) {
@@ -711,10 +702,8 @@ bool physics_isGameLost(void) {
 void physics_resetGame(void) {
     InputData *data = getInputData();
 
-    // Flags zurücksetzen
     g_goal.reached = false;
-    data->game.paused = false;
-
+    data->game.paused = true;
     physics_init();
 }
 
@@ -728,4 +717,29 @@ int physics_getBallCount(void) {
 
 int physics_getBlackHoleCount(void) {
     return (int)g_blackHoles.size;
+}
+
+void physics_kickBall(void) {
+    InputData *data = getInputData();
+    if (data->game.paused || data->paused) {
+        return;
+    }
+    
+    Ball *b = NULL;
+    for (int i = 0; i < g_balls.size && b == NULL; ++i) {
+        if (g_balls.data[i].active) {
+            b = &g_balls.data[i];
+        }
+    }
+
+    if (b == NULL) {
+        return;
+    }
+
+    float angle = RAND01 * 2.0f * (float) M_PI;
+    vec3 dir = {cosf(angle), 0.0f, sinf(angle)};
+
+    vec3 velocityKick;
+    glm_vec3_scale(dir, data->physics.kickStrength, velocityKick);
+    glm_vec3_add(b->velocity, velocityKick, b->velocity);
 }

@@ -10,12 +10,6 @@
 
 #include <fhwcg/fhwcg.h>
 
-typedef struct {
-    vec3 position;
-    float radius;
-    float strength;  // Anziehungskraft
-} BlackHole;
-
 void physics_init(void);
 
 void physics_update(void);
@@ -51,5 +45,7 @@ void physics_resetGame(void);
 int physics_getBallCount(void);
 
 int physics_getBlackHoleCount(void);
+
+void physics_kickBall(void);
 
 #endif // PHYSICS_H

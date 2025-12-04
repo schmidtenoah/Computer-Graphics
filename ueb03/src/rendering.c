@@ -16,7 +16,7 @@
 #include "physics.h"
 
 /** Projection data*/
-#define NEAR_PLANE 0.0001f
+#define NEAR_PLANE 0.01f
 #define FAR_PLANE 200.0f
 #define FOV_Y 45
 
@@ -232,11 +232,8 @@ void rendering_draw(void) {
         drawObstacles(data);
     }
 
-    // Zeichne opake Objekte zuerst
     physics_drawBalls();
     physics_drawBlackHoles();
-
-    // Transparente Objekte zuletzt (mit Depth-Mask deaktiviert)
     physics_drawGoal();
 
     scene_popMatrix();

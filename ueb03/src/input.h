@@ -107,6 +107,10 @@ typedef struct {
         float ballRadius;
         float frictionFactor;
         float ballSpawnRadius;
+        float blackHoleStrength;
+        float blackHoleRadius;
+        float blackHoleCaptureRadius;
+        float kickStrength;
 
         Collision ball;
         Collision wall;
