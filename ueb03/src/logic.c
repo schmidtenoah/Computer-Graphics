@@ -526,6 +526,7 @@ void logic_evalSplineGlobal(float gT, float gS, vec3 posDest, vec3 normalDest) {
     float stepX = maxX / (patchCount * 3.0f);
     float stepZ = maxZ / (patchCount * 3.0f);
 
+    // Convert global params to patch indices and local params
     float global_s = gS * patchCount;
     int patch_s = (int) floor(global_s);
     patch_s = CLAMP(patch_s, 0, patchCount - 1);
@@ -536,6 +537,7 @@ void logic_evalSplineGlobal(float gT, float gS, vec3 posDest, vec3 normalDest) {
     patch_t = CLAMP(patch_t, 0, patchCount - 1);
     float local_t = global_t - patch_t;
 
+    // Evaluate patch at local coordinates
     Patch *p = &g_patches.data[patch_s * patchCount + patch_t];
     PatchEvalResult res = utils_evalPatchLocal(p, local_s, local_t);
 
@@ -553,9 +555,11 @@ void logic_closestSplinePointTo(vec3 worldPos, float *outS, float *outT) {
     InputData *data = getInputData();
     int dimension = data->surface.dimension;
 
+    // Get surface bounds
     float maxX = data->surface.controlPoints.data[dimension-1][0];
     float maxZ = data->surface.controlPoints.data[(dimension-1)*dimension][2];
 
+    // Project world pos to normalized coords
     float gT = worldPos[0] / maxX;
     float gS = worldPos[2] / maxZ;
     gT = CLAMP(gT, 0.0f, 1.0f);

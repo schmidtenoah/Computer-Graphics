@@ -5,8 +5,8 @@
  * Handles loading shader files, compilation, linking, and reloading.
  * Manages three shader programs:
  * - simple (colored rendering),
- * - gradient (background),
- * - normalPoint (normal vector visualization with geometry shader).
+ * - model (lighting and materials),
+ * - normal (normal vector visualization with geometry shader).
  *
  * @authors Nikolaos Tsetsas, Noah Schmidt
  */

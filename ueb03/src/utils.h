@@ -26,6 +26,13 @@
 #define VEC2(x, y) ((vec2) {x, y})
 #define CLAMP(x, min, max) ((x < min) ? min : (x > max) ? max : x)
 
+/**
+ * Defines a dynamic array type with init, free, clear, reserve, push
+ * and popBack functions for any given element TYPE.
+ *
+ * @param TYPE Element type stored in the array
+ * @param NAME Name of the generated array type
+ */
 #define DEFINE_ARRAY_TYPE(TYPE, NAME)                                          \
 typedef struct {                                                               \
     TYPE *data;                                                                \
@@ -75,6 +82,10 @@ static inline void NAME##_popBack(NAME *arr) {                                 \
     }                                                                          \
 }                                                                              \
 
+/**
+ * Enumerates available height modification functions used to
+ * deform the surface's control points.
+ */
 typedef enum {
     HF_FLAT,
     HF_SIN,
@@ -88,6 +99,10 @@ typedef enum {
     HF_COUNT
 } HeightFuncType;
 
+/**
+ * Represents a cubic Bezier camera path with 4 control points,
+ * activation state, current parameter t, and total duration.
+ */
 typedef struct {
     vec3 p0, p1, p2, p3;  // 4 control points
     bool isActive;
@@ -212,10 +227,37 @@ void utils_evalBezierTangent3D(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, vec3
  */
 void utils_rotateAroundYAxis(vec3* currPos, float* currAngle, vec3 center, float radius, float speed, float deltaTime);
 
+/**
+ * Computes a normalized surface normal from partial derivatives.
+ *
+ * @param dsd ∂q/∂s derivative
+ * @param dtd ∂q/∂t derivative
+ * @param stepX Scaling factor in X direction
+ * @param stepZ Scaling factor in Z direction
+ * @param dest Output normal vector
+ */
 void utils_getNormal(float dsd, float dtd, float stepX, float stepZ, vec3 dest);
 
+/**
+ * Computes the closest point on an obstacle's axis-aligned bounding box (AABB)
+ * to a given world-space position.
+ *
+ * @param point Query position
+ * @param o Pointer to obstacle with AABB data
+ * @param dest Output closest point on the AABB
+ */
 void utils_closestPointOnAABB(vec3 point, Obstacle *o, vec3 dest);
 
+/**
+ * Determines the outward normal of an obstacle's AABB at a given position,
+ * based on penetration direction and distance.
+ *
+ * @param o Pointer to the obstacle AABB
+ * @param pos Contact position
+ * @param dist Signed distance to the AABB surface
+ * @param diff Direction vector from AABB to pos
+ * @param dest Output normal vector
+ */
 void utils_getAABBNormal(Obstacle *o, vec3 pos, float dist, vec3 diff, vec3 dest);
 
 #endif // UTILS_H

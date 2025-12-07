@@ -1,6 +1,6 @@
 /**
  * @file physics.c
- * @brief Physics with Euler-Integration, walls, ball collisions, black holes and goal
+ * @brief Physics with Euler-Integration, walls, ball collisions (penalty method), black holes and goal
  *
  * @authors Nikolaos Tsetsas, Noah Schmidt
  */
@@ -21,6 +21,11 @@
 #define DEFAULT_BLACKHOLE_COUNT 5
 #define GOAL_RADIUS 0.3f
 
+/**
+ * Macro to init ball with defaults
+ *
+ * @param idx Ball index for positioning
+ */
 #define DEFAULT_BALL(idx) {                     \
     .velocity = DEFAULT_BALL_VELOCITY,          \
     .acceleration = DEFAULT_BALL_ACCELERATION,  \
@@ -31,21 +36,34 @@
     .active = true                              \
 }
 
+/**
+ * Represents a black hole
+ */
 typedef struct {
     vec3 position;
 } BlackHole;
 
+/**
+ * Represents wall
+ */
 typedef struct {
     vec3 normal;
     float distance;
 } Wall;
 
+/**
+ * Stores contact info between ball and surface
+ */
 typedef struct {
     vec3 point;
     vec3 normal;
     float s, t;
 } ContactInfo;
 
+/**
+ * Represents a ball
+ * Uses Euler integration for movement and penalty method for collisions.
+ */
 typedef struct {
     vec3 center;
     vec3 acceleration;
@@ -57,9 +75,16 @@ typedef struct {
 DEFINE_ARRAY_TYPE(Ball, BallArr);
 DEFINE_ARRAY_TYPE(BlackHole, BlackHoleArr);
 
+/** Global array of all balls in simulation */
 static BallArr g_balls;
+
+/** Global array of all black holes */
 static BlackHoleArr g_blackHoles;
 
+/**
+ * Wall boundaries defining play area.
+ * Four walls prevent balls from rolling off the surface
+ */
 static struct {
     Wall walls[WALL_CNT];
     bool initialized;
@@ -67,6 +92,9 @@ static struct {
     .initialized = false
 };
 
+/**
+ * Goal state and position
+ */
 static struct {
     vec3 position;
     float radius;
@@ -76,6 +104,7 @@ static struct {
     .reached = false
 };
 
+/** Material properties for ball rendering */
 static const Material BALL_MAT = {
     .ambient = {0.5f, 0.5f, 0.5f},
     .diffuse = {0.6f, 0.6f, 0.6f},
@@ -85,6 +114,7 @@ static const Material BALL_MAT = {
     .alpha = 1.0f
 };
 
+/** Material properties for black hole rendering */
 static const Material BLACKHOLE_MAT = {
     .ambient = {0.0f, 0.0f, 0.0f},
     .diffuse = {0.1f, 0.0f, 0.1f},
@@ -94,6 +124,7 @@ static const Material BLACKHOLE_MAT = {
     .alpha = 0.9f
 };
 
+/** Material properties for goal rendering */
 static const Material GOAL_MAT = {
     .ambient = {0.0f, 0.5f, 0.0f},
     .diffuse = {0.0f, 0.8f, 0.0f},
@@ -105,34 +136,54 @@ static const Material GOAL_MAT = {
 
 ////////////////////////    LOCAL    ////////////////////////////
 
+/**
+ * Init four walls placed at the edges of the surface to prevent balls from falling off.
+ *
+ * Walls:
+ * - Wall 0: Left edge (X = 0, normal points right)
+ * - Wall 1: Right edge (X = maxX, normal points left)
+ * - Wall 2: Front edge (Z = 0, normal points back)
+ * - Wall 3: Back edge (Z = maxZ, normal points forward)
+ */
 static void initWalls(void) {
     InputData *data = getInputData();
     int dimension = data->surface.dimension;
 
+    // Get surface bounds from corner control points
     float maxX = data->surface.controlPoints.data[dimension-1][0];
     float maxZ = data->surface.controlPoints.data[(dimension-1)*dimension][2];
 
+    // Left wall (X = 0)
     glm_vec3_copy((vec3){1, 0, 0}, g_walls.walls[0].normal);
     g_walls.walls[0].distance = 0.0f;
 
+    // Right wall (X = maxX)
     glm_vec3_copy((vec3){-1, 0, 0}, g_walls.walls[1].normal);
     g_walls.walls[1].distance = maxX;
 
+    // Front wall (Z = 0)
     glm_vec3_copy((vec3){0, 0, 1}, g_walls.walls[2].normal);
     g_walls.walls[2].distance = 0.0f;
 
+    // Back wall (Z = maxZ)
     glm_vec3_copy((vec3){0, 0, -1}, g_walls.walls[3].normal);
     g_walls.walls[3].distance = maxZ;
 
     g_walls.initialized = true;
 }
 
+/**
+ * Creates black holes at random positions on the surface
+ * Black holes attract nearby balls eats them if too close.
+ * Positions are random across the surface, EXCEPT at edges.
+ */
 static void initBlackHoles(void) {
     BlackHoleArr_clear(&g_blackHoles);
 
     for (int i = 0; i < DEFAULT_BLACKHOLE_COUNT; i++) {
         BlackHole bh;
 
+        // Random position on surface (5% margin)
         float s = 0.05f + RAND01 * 0.95f;
         float t = 0.05f + RAND01 * 0.95f;
 
@@ -142,11 +193,18 @@ static void initBlackHoles(void) {
     }
 }
 
+/**
+ * Positions the goal at the lowest point on the surface.
+ * Uses cached min/max points from surface generation
+ */
 static void initGoal(void) {
     InputData *data = getInputData();
 
     vec3 goalPos, normal;
+
+    // Use lowest point as goal position
     if (glm_vec3_eqv_eps(data->surface.minPoint, data->surface.maxPoint)) {
+        // Fallback if min/max are identical (flat surface)
         glm_vec3_copy(
             data->surface.controlPoints.data[data->surface.controlPoints.size - 1], 
             goalPos
@@ -163,6 +221,14 @@ static void initGoal(void) {
     g_goal.reached = false;
 }
 
+/**
+ * Updates ball center position based on radius.
+ * Ball center is offset from surface by its radius along the surface normal.
+ * Using center = contact_point + radius * normal
+ *
+ * @param b Ball to update
+ * @param radius Ball radius
+ */
 static void applyContactPoint(Ball *b, float radius) {
     assert(b != NULL);
 
@@ -171,6 +237,16 @@ static void applyContactPoint(Ball *b, float radius) {
     glm_vec3_add(b->contact.point, center, b->center);
 }
 
+/**
+ * Applies penalty force on ball when collision with wall
+ *
+ * @param b Ball in collision
+ * @param w Wall hit
+ * @param ballMass Ball mass
+ * @param penetration Penetration depth (must be > 0)
+ * @param springConst Spring value
+ * @param wallDamping Velocity damping factor [0,1]
+ */
 static void applyWallPenalty(
     Ball *b, Wall *w, float ballMass, float penetration,
     float springConst, float wallDamping
@@ -178,14 +254,18 @@ static void applyWallPenalty(
     assert(b != NULL && w != NULL);
     assert(penetration > 0.0f);
 
+    // Penalty force: F = k * d
     float counterforce = springConst * penetration;
 
+    // Convert force to acceleration: a = F / m
     vec3 penaltyForce, additionalAcceleration;
     glm_vec3_scale(w->normal, counterforce, penaltyForce);
     glm_vec3_scale(penaltyForce, 1.0f / ballMass, additionalAcceleration);
 
+    // Add to existing acceleration
     glm_vec3_add(additionalAcceleration, b->acceleration, b->acceleration);
 
+    // Reflect velocity if moving into wall
     float velDotNormal = glm_vec3_dot(b->velocity, w->normal);
     if (velDotNormal < 0.0f) {
         vec3 reflected;
@@ -194,6 +274,13 @@ static void applyWallPenalty(
     }
 }
 
+/**
+ * Checks and handles wall collisions for a ball.
+ * Tests penetration against all four boundary walls
+ *
+ * @param data Input data containing physics
+ * @param b Ball to check
+ */
 static void handleWallCollision(InputData *data, Ball *b) {
     assert(b != NULL);
     assert(g_walls.initialized);
@@ -210,6 +297,7 @@ static void handleWallCollision(InputData *data, Ball *b) {
     for (int i = 0; i < WALL_CNT; i++) {
         Wall *wall = &g_walls.walls[i];
 
+        // Calculate distance from ball center to wall plane
         float signedDist = glm_vec3_dot(wall->normal, b->center) + wall->distance;
         float penetrationDepth = ballRadius - signedDist;
 
@@ -219,6 +307,17 @@ static void handleWallCollision(InputData *data, Ball *b) {
     }
 }
 
+/**
+ * Applies penalty force when two balls collide.
+ *
+ * @param b1 First ball
+ * @param b2 Second ball
+ * @param penetration Penetration depth
+ * @param b1ToB2 Vector from b1 center to b2 center
+ * @param springConst Spring constant k
+ * @param mass Ball mass
+ * @param ballDamping Damping coefficient [0,1]
+ */
 static void applyBallPenalty(
     Ball *b1, Ball *b2, float penetration, vec3 b1ToB2,
     float springConst, float mass, float ballDamping
@@ -229,8 +328,10 @@ static void applyBallPenalty(
     vec3 normal;
     glm_vec3_normalize_to(b1ToB2, normal);
 
+    // Spring force: F = k * d
     float counterForce = springConst * penetration;
 
+    // Apply equal and opposite forces (Newton's 3rd law)
     vec3 penaltyForce, penaltyAccel;
     glm_vec3_scale(normal, counterForce, penaltyForce);
     glm_vec3_scale(penaltyForce, 1.0f / mass, penaltyAccel);
@@ -238,10 +339,12 @@ static void applyBallPenalty(
     glm_vec3_sub(b1->acceleration, penaltyAccel, b1->acceleration);
     glm_vec3_add(b2->acceleration, penaltyAccel, b2->acceleration);
 
+    // Velocity impulse for separation
     vec3 relativeVelocity;
     glm_vec3_sub(b1->velocity, b2->velocity, relativeVelocity);
     float velocityAlongNormal = glm_vec3_dot(relativeVelocity, normal);
     if (velocityAlongNormal > 0.0f) {
+        // Balls are separating, apply impulse
         float impulseScale = (1.0f + ballDamping) * velocityAlongNormal * 0.5f;
         vec3 impulse;
         glm_vec3_scale(normal, impulseScale, impulse);
@@ -251,6 +354,14 @@ static void applyBallPenalty(
     }
 }
 
+/**
+ * Checks and handles collisions between a ball and all other balls.
+ * Only checks balls with index > i1 to avoid duplicate pair checks.
+ *
+ * @param data Input data containing physics
+ * @param b1 Ball to check
+ * @param i1 Index of b1 in array
+ */
 static void handleBallCollisions(InputData *data, Ball *b1, int i1) {
     assert(b1 != NULL);
 
@@ -284,6 +395,18 @@ static void handleBallCollisions(InputData *data, Ball *b1, int i1) {
     }
 }
 
+/**
+ * Applies penalty force when ball collides with an obstacle
+ *
+ * @param b Ball in collision
+ * @param o Obstacle (bounding box)
+ * @param dist Distance from ball to closest point
+ * @param diff Vector from closest point to ball center
+ * @param springConst Spring constant
+ * @param penetration Penetration depth
+ * @param ballMass Ball mass
+ * @param obstacleDamping Damping coefficient
+ */
 static void applyObstaclePenalty(
     Ball *b, Obstacle *o, float dist, vec3 diff, float springConst,
     float penetration, float ballMass, float obstacleDamping
@@ -293,6 +416,7 @@ static void applyObstaclePenalty(
     vec3 normal;
     utils_getAABBNormal(o, b->center, dist, diff, normal);
 
+    // Spring force: F = k * d
     float counterforce = springConst * penetration;
 
     vec3 penaltyForce, additionalAcceleration;
@@ -301,6 +425,7 @@ static void applyObstaclePenalty(
 
     glm_vec3_add(additionalAcceleration, b->acceleration, b->acceleration);
 
+    // Reflect velocity if moving into obstacle
     float velDotNormal = glm_vec3_dot(b->velocity, normal);
     if (velDotNormal < 0.0f) {
         vec3 reflected;
@@ -309,6 +434,13 @@ static void applyObstaclePenalty(
     }
 }
 
+/**
+ * Checks and handles collisions between ball and all obstacles.
+ * Each obstacle is an axis-aligned bounding box on the surface.
+ *
+ * @param data Input data containing physics and obstacle data
+ * @param b Ball to check
+ */
 static void handleObstacleCollisions(InputData *data, Ball *b) {
     assert(b != NULL);
 
@@ -341,6 +473,18 @@ static void handleObstacleCollisions(InputData *data, Ball *b) {
     }
 }
 
+/**
+ * Applies attractive force from black holes to ball.
+ * Force increases with proximity.
+ *
+ * Balls within capture radius are immediately deactivated.
+ *
+ * Force formula: F = strength / distance²
+ * Acceleration: a = F / m
+ *
+ * @param data Input data containing black hole parameters
+ * @param b Ball to affect
+ */
 static void handleBlackHoleAttraction(InputData *data, Ball *b) {
     assert(b != NULL);
     float ballMass = data->physics.mass;
@@ -355,20 +499,21 @@ static void handleBlackHoleAttraction(InputData *data, Ball *b) {
         glm_vec3_sub(bh->position, b->center, toBlackHole);
         float dist = glm_vec3_norm(toBlackHole);
 
-        // Check if ball has been swallowed
+        // Capture ball if too close
         if (dist < captureRadius) {
             b->active = false;
             return;
         }
 
+        // Apply inverse-square attraction force
         if (dist < holeRadius && dist > 0.0001f) {
             vec3 direction;
             glm_vec3_normalize_to(toBlackHole, direction);
 
-            // Attraction Force: F = strength / dist²
+            // F = strength / dist²
             float forceMagnitude = holeStrength / (dist * dist);
 
-            // accelleration: a = F / m
+            // a = F / m
             vec3 attraction;
             glm_vec3_scale(direction, forceMagnitude / ballMass, attraction);
             glm_vec3_add(b->acceleration, attraction, b->acceleration);
@@ -376,6 +521,12 @@ static void handleBlackHoleAttraction(InputData *data, Ball *b) {
     }
 }
 
+/**
+ * Checks if ball has reached the goal.
+ * Sets global goal.reached flag on first ball to enter goal radius.
+ *
+ * @param b Ball to check
+ */
 static void checkGoalReached(Ball *b) {
     assert(b != NULL);
 
@@ -392,35 +543,64 @@ static void checkGoalReached(Ball *b) {
     }
 }
 
+/**
+ * Calculates external forces acting on the ball.
+ * Primary force is gravity causing the ball to roll.
+ *
+ * @param b Ball to update
+ * @param gravity Gravity vector
+ * @param mass Ball mass
+ */
 static void applyExternForces(Ball *b, vec3 gravity, float mass) {
     assert(b != NULL);
 
+    // Decompose gravity into normal and tangential components
     vec3 l, f;
     float gDotN = glm_vec3_dot(gravity, b->contact.normal);
-    glm_vec3_scale(b->contact.normal, gDotN, l);
-    glm_vec3_sub(gravity, l, f);
+    glm_vec3_scale(b->contact.normal, gDotN, l); // normal comp.
+    glm_vec3_sub(gravity, l, f); // tangent comp
 
+    // force to accel: a = f / m
     glm_vec3_scale(f, 1.0f / mass, b->acceleration);
 }
 
+/**
+ * Performs one Euler integration step for ball physics.
+ *
+ * @param b Ball to update
+ * @param dt Time step
+ * @param friction Velocity damping factor
+ * @param ballRadius Ball radius
+ */
 static void applyIntegration(Ball *b, float dt, float friction, float ballRadius) {
     assert(b != NULL);
 
+    // Euler integration: v += a * dt
     vec3 accelDt;
     glm_vec3_scale(b->acceleration, dt, accelDt);
     glm_vec3_add(b->velocity, accelDt, b->velocity);
 
+    // Apply friction
     glm_vec3_scale(b->velocity, friction, b->velocity);
 
+    // Euler integration: s += v * dt
     vec3 vMulDt = {0};
     glm_vec3_scale(b->velocity, dt, vMulDt);
     glm_vec3_add(b->contact.point, vMulDt, b->contact.point);
 
+    // Project contact point back onto surface
     logic_closestSplinePointTo(b->contact.point, &b->contact.s, &b->contact.t);
     logic_evalSplineGlobal(b->contact.t, b->contact.s, b->contact.point, b->contact.normal);
+
+    // Update ball center
     applyContactPoint(b, ballRadius);
 }
 
+/**
+ * Main ball physics update using Euler integration and penalty method.
+ *
+ * @param data Input data containing physics
+ */
 static void updateBalls(InputData *data) {
     float dt = data->physics.fixedDt;
     vec3 gravity = {0, -data->physics.gravity, 0};
@@ -453,6 +633,13 @@ static void updateBalls(InputData *data) {
     }
 }
 
+/**
+ * Randomizes all obstacle positions on the surface.
+ * Obstacles 0-3 are perpendicular to surface axes.
+ * Obstacles 4-5 are parallel to surface axes.
+ *
+ * @param data Input data containing obstacle array
+ */
 static void randomizeObstacles(InputData *data) {
     for (int i = 0; i < OBSTACLE_COUNT; ++i) {
         Obstacle *o = &data->game.obstacles[i];

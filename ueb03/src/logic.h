@@ -74,8 +74,27 @@ void logic_initCameraFlight(InputData *data);
  */
 void logic_updateCameraFlight(InputData *data, float deltaTime);
 
+/**
+ * Converts global params gT and gS into patch indices and local
+ * spline, then the corresponding polynomial patch
+ *
+ * Used by game objects such as obstacles to orient themselves according to surface
+ *
+ * @param gT Global t-parameter X-direction
+ * @param gS Global s-parameter Z-direction
+ * @param posDest world-space position
+ * @param normalDest surface normal
+ */
 void logic_evalSplineGlobal(float gT, float gS, vec3 posDest, vec3 normalDest);
 
+/**
+ * Projects world position into the spline surfance and determines
+ * the normalized coords.
+ *
+ * @param worldPos Position in world space
+ * @param outS normalized s-coordinate
+ * @param outT normalized t-coordinate
+ */
 void logic_closestSplinePointTo(vec3 worldPos, float *outS, float *outT);
 
 #endif // LOGIC_H

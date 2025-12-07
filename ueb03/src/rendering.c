@@ -35,6 +35,7 @@ typedef struct {
 
 ////////////////////////    LOCAL    ////////////////////////////
 
+/** Material for standard obstacles */
 static const Material OBSTACLE_MAT = {
     .ambient = {0.25f, 0.25f, 0.5f},
     .diffuse = {0.3f, 0.3f, 0.6f},
@@ -44,6 +45,7 @@ static const Material OBSTACLE_MAT = {
     .alpha = 1.0f
 };
 
+/** Material for selected obstacle (highlighted) */
 static const Material OBSTACLE_MAT_SELECTED = {
     .ambient = {0.5f, 0.0f, 0.0f},
     .diffuse = {0.6f, 0.0f, 0.0f},
@@ -104,6 +106,12 @@ static void updatePointLight(InputData *data) {
     }
 }
 
+/**
+ * Draws the camera flight path as a series of small spheres.
+ * Shows the Bezier curve from highest to lowest point.
+ *
+ * @param data Input data containing flight path control points
+ */
 static void drawCamFlightPath(InputData *data) {
     const int SEG = 128;
     vec3 p;
@@ -128,6 +136,12 @@ static void drawCamFlightPath(InputData *data) {
     }
 }
 
+/**
+ * Draws all control points as spheres.
+ * Selected control point is highlighted in red and larger.
+ *
+ * @param data Input data containing control points
+ */
 static void drawControlPoints(InputData *data) {
     for (int i = 0; i < data->surface.controlPoints.size; ++i) {
         scene_pushMatrix();
@@ -147,6 +161,12 @@ static void drawControlPoints(InputData *data) {
     }
 }
 
+/**
+ * Draws the B-spline surface with optional texturing.
+ * Updates point light before rendering if enabled.
+ *
+ * @param data Input data containing surface and lighting settings
+ */
 static void drawSurface(InputData *data) {
     mat4 modelviewMat, viewMat;
     scene_getMV(viewMat);
@@ -164,6 +184,12 @@ static void drawSurface(InputData *data) {
     model_drawSurface(data->showNormals, &viewMat, &modelviewMat);
 }
 
+/**
+ * Draws all obstacles as oriented boxes on the surface.
+ * Selected obstacle is highlighted with different material.
+ *
+ * @param data Input data containing obstacle array
+ */
 static void drawObstacles(InputData *data) {
     scene_pushMatrix();
 

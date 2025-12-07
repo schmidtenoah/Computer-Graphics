@@ -28,6 +28,9 @@ static Mesh *g_models[MODEL_MESH_COUNT];
 /** Texture IDs for surface textures */
 static GLuint g_textureIds[NUM_TEXTURES] = {0};
 
+/**
+ * Surface mesh data.
+ */
 static struct {
     GLuint vao, vbo, ebo;
     size_t vertexBufferSize;
@@ -55,6 +58,7 @@ static void model_initSphere(void) {
  * Creates a unit Cube mesh.
  */
 static void model_initCube(void) {
+    // 6 faces * 4 vertices per face = 24 vertices
     const float positions[24][3] = {
         // +X face
         { 1, -1, -1 }, { 1,  1, -1 }, { 1,  1,  1 }, { 1, -1,  1 },
@@ -70,6 +74,7 @@ static void model_initCube(void) {
         { 1, -1, -1 }, { -1, -1, -1 }, { -1,  1, -1 }, { 1,  1, -1 }
     };
 
+    // One normal per face
     const float normals[6][3] = {
         {  1,  0,  0 }, // +X
         { -1,  0,  0 }, // -X
@@ -92,6 +97,7 @@ static void model_initCube(void) {
     int vIndex = 0;
     int iIndex = 0;
 
+    // Build vertices for each face
     for (int face = 0; face < 6; face++) {
         for (int vert = 0; vert < 4; vert++) {
             vec3 normal = { normals[face][0], normals[face][1], normals[face][2] };
@@ -104,6 +110,7 @@ static void model_initCube(void) {
             };
         }
 
+        // Build indices for two triangles per face
         int base = face * 4;
         indices[iIndex++] = base + 0;
         indices[iIndex++] = base + 1;

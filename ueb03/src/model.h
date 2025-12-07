@@ -31,6 +31,9 @@ typedef enum {
     MODEL_SURFACE
 } ModelType;
 
+/**
+ * Struct for material properties
+ */
 typedef struct {
     vec3 ambient;
     vec3 diffuse;

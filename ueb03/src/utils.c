@@ -18,6 +18,7 @@
 
 ////////////////////////    LOCAL    ////////////////////////////
 
+/** Function pointer type for height modification functions */
 typedef void (*HeightFunc)(vec3 *cp, int x, int z, int dimension);
 
 /**
@@ -167,7 +168,9 @@ static void height_exp(vec3 *cp, int x, int z, int dimension) {
 }
 
 /**
- * TODO
+ * Height function: Tilt along X axis.
+ * Creates a linear slope in the X direction.
+ *
  * @param cp Pointer to control point to modify
  * @param x X grid index
  * @param z Z grid index
@@ -181,7 +184,9 @@ static void height_tiltX(vec3 *cp, int x, int z, int dimension) {
 }
 
 /**
- * TODO
+ * Height function: Tilt along Z axis.
+ * Creates a linear slope in the Z direction.
+ *
  * @param cp Pointer to control point to modify
  * @param x X grid index
  * @param z Z grid index
@@ -220,6 +225,7 @@ void utils_applyHeightFunction(HeightFuncType funcType) {
     InputData *data = getInputData();
     int dimension = data->surface.dimension;
 
+    // Apply height function to all control points
     for (int z = 0; z < dimension; ++z) {
         for (int x = 0; x < dimension; ++x) {
             int idx = z * dimension + x;
@@ -227,6 +233,7 @@ void utils_applyHeightFunction(HeightFuncType funcType) {
         }
     }
 
+    // Mark surface as changed
     data->surface.dimensionChanged = true;
     data->surface.resolutionChanged = true;
     data->surface.offsetChanged = true;
@@ -326,6 +333,7 @@ void utils_rotateAroundYAxis(vec3 *currPos, float *currAngle, vec3 center, float
 }
 
 void utils_getNormal(float dsd, float dtd, float stepX, float stepZ, vec3 dest){
+    // Compute surface normal from partial derivatives with tangents in s and t dir
     vec3 n = { 0 };
     vec3 rs = { 0.0f, dsd, stepZ };
     vec3 rt = { stepX, dtd, 0.0f };
@@ -334,9 +342,11 @@ void utils_getNormal(float dsd, float dtd, float stepX, float stepZ, vec3 dest){
 }
 
 void utils_closestPointOnAABB(vec3 point, Obstacle *o, vec3 dest) {
+    // Find closest point on bounding box to given point
     vec3 relativePoint;
     glm_vec3_sub(point, o->center, relativePoint);
 
+    // AABB half-extents
     float ex = o->length;
     float ey = o->height;
     float ez = o->width;
@@ -346,12 +356,16 @@ void utils_closestPointOnAABB(vec3 point, Obstacle *o, vec3 dest) {
     relativePoint[1] = glm_clamp(relativePoint[1], -ey, ey);
     relativePoint[2] = glm_clamp(relativePoint[2], -ez, ez);
 
+    // Convert back to world space
     glm_vec3_add(o->center, relativePoint, dest);
 }
 
 void utils_getAABBNormal(Obstacle *o, vec3 pos, float dist, vec3 diff, vec3 dest) {
     vec3 normal;
+
+    // Handle case (point exactly on box surface)
     if (dist < 1e-6f) {
+        // Find which face is closest by measuring distance to each
         float ex = o->length;
         float ey = o->height;
         float ez = o->width;
@@ -362,19 +376,23 @@ void utils_getAABBNormal(Obstacle *o, vec3 pos, float dist, vec3 diff, vec3 dest
 
         // smallest distance to box -> direction o biggest penetration
         if (dx <= dy && dx <= dz) {
+            // X face
             normal[0] = (pos[0] > o->center[0]) ? 1.0f : -1.0f;
             normal[1] = 0.0f;
             normal[2] = 0.0f;
         } else if (dy <= dz) {
+            // Y face
             normal[0] = 0.0f;
             normal[1] = (pos[1] > o->center[1]) ? 1.0f : -1.0f;
             normal[2] = 0.0f;
         } else {
+            // Z face
             normal[0] = 0.0f;
             normal[1] = 0.0f;
             normal[2] = (pos[2] > o->center[2]) ? 1.0f : -1.0f;
         }
     } else {
+        // Normal case: normalize difference vector
         glm_vec3_scale(diff, 1.0f / dist, normal);
     }
 

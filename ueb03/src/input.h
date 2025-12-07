@@ -20,12 +20,20 @@
 #define OBSTACLE_COUNT 6
 #define OBSTACLE_HEIGHT 0.2f
 
+/**
+ * Dynamic array struct for vec3 elements.
+ * Stores ctrl points
+ */
 typedef struct {
     size_t size;
     size_t capacity;
     vec3 *data;
 } Vec3Arr;
 
+/**
+ * Struct for box obstacle
+ * Position with surface coordinates (gS, gT).
+ */
 typedef struct {
     vec3 normal;
     vec3 center;
@@ -33,6 +41,9 @@ typedef struct {
     float gS, gT;
 } Obstacle;
 
+/**
+ * Collision parameters for different collisions.
+ */
 typedef struct {
     float damping;
     float spring;
