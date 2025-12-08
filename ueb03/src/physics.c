@@ -213,7 +213,7 @@ static void initGoal(void) {
         glm_vec3_copy(data->surface.minPoint, goalPos);
     }
 
-    // Position slightly above surface for better visibility
+    // Position on surface
     float s, t;
     logic_closestSplinePointTo(goalPos, &s, &t);
     logic_evalSplineGlobal(t, s, g_goal.position, normal);
