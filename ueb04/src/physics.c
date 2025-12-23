@@ -170,10 +170,13 @@ static void computeAcceleration(InputData *data, Particle *p, vec3 dest) {
         }
 
         case TM_CENTER: {
+            vec3 center;
             for (int i = 0; i < g_particles.size; ++i) {
-                glm_vec3_add(dest, g_particles.data[i].pos, dest);
+                glm_vec3_add(center, g_particles.data[i].pos, center);
             }
-            glm_vec3_scale(dest, 1.0f / g_particles.size, dest);
+            glm_vec3_sub(center, p->pos, dest);
+            glm_vec3_normalize(dest);
+            glm_vec3_scale(dest, p->kWeak / g_particles.size, dest);
             break;
         }
 
