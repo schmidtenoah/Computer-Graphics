@@ -44,6 +44,29 @@ static void model_initSphere(void) {
 }
 
 /**
+ * Creates Triangle mesh
+ */
+static void model_initTriangle(void) {
+    Vertex triangleVertices[3];
+    triangleVertices[0] =  Vertex3Tex(0.0f, 1, 0.0f, 0, 0, 1, 0.5f, 0.5f);
+    triangleVertices[1] =  Vertex3Tex(-0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f);
+    triangleVertices[2] =  Vertex3Tex(0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f);
+    
+    g_models[MODEL_TRIANGLE] = mesh_createMesh("Triangle", triangleVertices, 3, NULL, 0, GL_TRIANGLES);
+}
+
+/**
+ * Creates Line mesh
+ */
+static void model_initLine(void) {
+    Vertex lineVertices[2];
+    lineVertices[0] = Vertex3Tex(-0.5f, 0.0f, 0.0f, 0, 0, 1, 0.0f, 0.0f);
+    lineVertices[1] = Vertex3Tex( 0.5f, 0.0f, 0.0f, 0, 0, 1, 1.0f, 1.0f);
+    
+    g_models[MODEL_LINE] = mesh_createMesh("Line", lineVertices, 2, NULL, 0, GL_LINES);
+}
+
+/**
  * Creates cube mesh
  */
 // TODO: Gibts hier nicht was schnelles?
@@ -142,6 +165,8 @@ static void model_loadTextures(void) {
 void model_init(void) {
     model_initSphere();
     model_initCube();
+    model_initTriangle();
+    model_initLine();
     model_loadTextures();
 }
 

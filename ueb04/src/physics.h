@@ -32,4 +32,8 @@ void physics_drawSpheres(void);
 
 void physics_toggleWander(void);
 
+void physics_updateParticleCount(int count);
+
+void physics_drawParticles(void);
+
 #endif // PHYSICS_H

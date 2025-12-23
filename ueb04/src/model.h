@@ -14,6 +14,8 @@
 typedef enum {
     MODEL_SPHERE,
     MODEL_CUBE,
+    MODEL_TRIANGLE,
+    MODEL_LINE,
     MODEL_MESH_COUNT
 } ModelType;
 

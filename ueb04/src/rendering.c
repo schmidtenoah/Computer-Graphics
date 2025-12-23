@@ -83,6 +83,7 @@ void rendering_draw(void) {
     updateCamera(data);
     drawRoom(data);
     physics_drawSpheres();
+    physics_drawParticles();
 
     scene_popMatrix();
     debug_popRenderScope();

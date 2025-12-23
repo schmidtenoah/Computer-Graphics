@@ -10,6 +10,18 @@
 
 #include <fhwcg/fhwcg.h>
 
+typedef enum {
+    TM_SPHERES,
+    TM_CENTER, 
+    TM_LEADER
+} TargetMode;
+
+typedef enum {
+    SV_SPHERE, 
+    SV_LINE, 
+    SV_TRIANGLE
+} SphereVis;
+
 /** Application state containing all settings and input data */
 typedef struct {
     bool isFullscreen;
@@ -31,15 +43,24 @@ typedef struct {
     } rendering;
 
     struct {
-        float gravity;
         float fixedDt;
+        float simulationSpeed;
         float dtAccumulator;
+
         float sphereRadius;
         float sphereSpeed;
-        float mass;
-        float frictionFactor;
-        float bounceDamping;
+
+        float roomForce;
     } physics;
+
+    struct {
+        int count;
+        float gaussianConst;
+        SphereVis sphereVis;
+        TargetMode targetMode;
+        float leaderKv;
+        int leaderIdx;
+    } particles;
 
 } InputData;
 

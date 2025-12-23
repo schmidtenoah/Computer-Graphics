@@ -15,17 +15,21 @@
 #define SPHERE_MAX_WAIT_SEC 2.5f
 #define SPHERE_SPEED 2.0f
 
-#define SPHERE_RANDOM_POS(sphere, data) { \
+#define RAND_IN_BOX(dst, boxSize) {       \
     vec3 pos = {                          \
         (RAND01 - 0.5f) * 1.9f,           \
         (RAND01 - 0.5f) * 1.9f,           \
         (RAND01 - 0.5f) * 1.9f            \
     };                                    \
-    glm_vec3_scale(pos,                   \
-        data->rendering.roomSize,         \
-        sphere->targetPos                 \
-    );                                    \
+    glm_vec3_scale(pos, boxSize, dst);    \
 }
+
+#define RAND_DIR(dst) {                                     \
+    vec3 dir = { RAND(-1, 1), RAND(-1, 1), RAND(-1, 1) };   \
+    glm_vec3_normalize_to(dir, dst);                        \
+}
+
+#define SPHERE_RANDOM_POS(sphere, data) RAND_IN_BOX(sphere->targetPos, data->rendering.roomSize)
 
 /** Sphere data structure */
 typedef struct {
@@ -37,10 +41,21 @@ typedef struct {
     vec3 color;
 } Sphere;
 
+typedef struct {
+    vec3 pos;
+    float kWeak, kV;
+    vec3 acceleration;
+    vec3 velocity;
+} Particle;
+
+DEFINE_ARRAY_TYPE(Particle, ParticleArr);
+
 ////////////////////////    LOCAL    ////////////////////////////
 
 /** Global sphere array */
 static Sphere g_spheres[NUM_SPHERES] = { 0 };
+
+static ParticleArr g_particles;
 
 /**
  * Checks wall collisions and applies bounce
@@ -128,6 +143,95 @@ static void updateSpheres(InputData *data) {
     }
 }
 
+static void getTargetAcceleration(Particle *p, vec3 target, vec3 dest) {
+    glm_vec3_sub(target, p->pos, dest);
+    glm_vec3_normalize(dest);
+    glm_vec3_scale(dest, p->kWeak, dest);
+}
+
+static void computeAcceleration(InputData *data, Particle *p, vec3 dest) {
+    switch (data->particles.targetMode) {
+        case TM_SPHERES: {
+            vec3 temp;
+            for (int i = 0; i < NUM_SPHERES; i++) {
+                Sphere *s = &g_spheres[i];
+                getTargetAcceleration(p, s->currPos, temp);
+                float dist2 = glm_vec3_distance2(s->currPos, p->pos);
+                float g = expf(- dist2/data->particles.gaussianConst);
+                glm_vec3_scale(temp, g, temp);
+                glm_vec3_add(temp, dest, dest);
+            }
+            break;
+        }
+
+        case TM_LEADER: {
+            getTargetAcceleration(p, g_particles.data[data->particles.leaderIdx].pos, dest);
+            break;
+        }
+
+        case TM_CENTER: {
+            for (int i = 0; i < g_particles.size; ++i) {
+                glm_vec3_add(dest, g_particles.data[i].pos, dest);
+            }
+            glm_vec3_scale(dest, 1.0f / g_particles.size, dest);
+            break;
+        }
+
+        default:
+            glm_vec3_copy(VEC3X(1.0f), dest);
+            break;
+    }
+}
+
+static void applyRoomCollision(InputData *data, Particle *p) {
+    float halfSize = 0.5f * data->rendering.roomSize;
+    float margin = 0.05f * halfSize;
+
+    vec3 force = { 0, 0, 0 };
+    float k = data->physics.roomForce;
+
+    float dx = p->pos[0];
+    if (dx > halfSize - margin) force[0] = -k * (dx - (halfSize - margin)) / margin;
+    else if (dx < -halfSize + margin) force[0] = -k * (dx + (halfSize - margin)) / margin;
+
+    float dy = p->pos[1];
+    if (dy > halfSize - margin) force[1] = -k * (dy - (halfSize - margin)) / margin;
+    else if (dy < -halfSize + margin) force[1] = -k * (dy + (halfSize - margin)) / margin;
+
+    float dz = p->pos[2];
+    if (dz > halfSize - margin) force[2] = -k * (dz - (halfSize - margin)) / margin;
+    else if (dz < -halfSize + margin) force[2] = -k * (dz + (halfSize - margin)) / margin;
+
+    glm_vec3_scale(force, data->physics.fixedDt, force);
+    glm_vec3_add(force, p->velocity, p->velocity);
+}
+
+static void updateParticles(InputData *data) {
+    float dt = data->physics.fixedDt;
+    float leaderKv = data->particles.leaderKv;
+    bool useLeaderKv = data->particles.targetMode == TM_LEADER;
+    bool leaderIdx = data->particles.leaderIdx;
+
+    for (int i = 0; i < g_particles.size; ++i) {
+        Particle *p = &g_particles.data[i];
+
+        computeAcceleration(data, p, p->acceleration);
+
+        vec3 deltaA;
+        glm_vec3_scale(p->acceleration, dt, deltaA);
+        glm_vec3_add(p->velocity, deltaA, p->velocity);
+        glm_vec3_normalize(p->velocity);
+        float kV = (useLeaderKv && leaderIdx == i) ? leaderKv : p->kV;
+        glm_vec3_scale(p->velocity, kV, p->velocity);
+
+        applyRoomCollision(data, p);
+
+        vec3 deltaV;
+        glm_vec3_scale(p->velocity, dt, deltaV);
+        glm_vec3_add(p->pos, deltaV, p->pos);
+    }
+}
+
 ////////////////////////    PUBLIC    ////////////////////////////
 
 void physics_init(void) {
@@ -141,7 +245,9 @@ void physics_init(void) {
         s->wandering = true;
         glm_vec3_copy(VEC3X(RAND01), s->color);
         data->physics.sphereSpeed = SPHERE_SPEED;
-    }   
+    }
+
+    physics_updateParticleCount(data->particles.count);
 }
 
 void physics_update(void) {
@@ -150,16 +256,17 @@ void physics_update(void) {
         return;
     }
 
-    data->physics.dtAccumulator += data->deltaTime;
+    data->physics.dtAccumulator += data->deltaTime * data->physics.simulationSpeed;
 
     while (data->physics.dtAccumulator >= data->physics.fixedDt) {
         updateSpheres(data);
+        updateParticles(data);
         data->physics.dtAccumulator -= data->physics.fixedDt;
     }
 }
 
 void physics_cleanup(void) {
-    // Nothing to clean up
+    ParticleArr_free(&g_particles);
 }
 
 void physics_toggleWander(void) {
@@ -194,4 +301,45 @@ void physics_drawSpheres(void) {
     }
 
     debug_popRenderScope();
+}
+
+void physics_drawParticles(void) {
+    debug_pushRenderScope("Particles");
+    scene_pushMatrix();
+
+    //InputData *data = getInputData();
+
+    for (int i = 0; i < g_particles.size; ++i) {
+        Particle *p = &g_particles.data[i];
+        scene_pushMatrix();
+
+        scene_translateV(p->pos);
+        scene_scale(0.1f, 0.1f, 0.1f);
+        model_drawSimple(MODEL_SPHERE);
+
+        scene_popMatrix();
+    }
+
+    scene_popMatrix();
+    debug_popRenderScope();
+}
+
+
+void physics_updateParticleCount(int count) {
+    InputData *data = getInputData();
+    float roomSize = data->rendering.roomSize;
+    ParticleArr_free(&g_particles);
+    ParticleArr_init(&g_particles);
+    ParticleArr_reserve(&g_particles, count);
+
+    for (int i = 0; i < count; ++i) {
+        Particle p = { 0 };
+        RAND_IN_BOX(p.pos, roomSize);
+        RAND_DIR(p.velocity);
+        p.kWeak = RAND(0.5f, 10.0f);
+        p.kV = RAND(1.0f, 2.0f);
+        ParticleArr_push(&g_particles, p);
+    }
+
+    data->particles.count = count;
 }

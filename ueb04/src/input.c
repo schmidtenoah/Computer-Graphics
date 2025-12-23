@@ -10,10 +10,17 @@
 #include "shader.h"
 
 #define CAM_SPEED 2.0f
-#define CAM_FAST_SPEED (CAM_SPEED * 3.0f)
+#define CAM_FAST_SPEED (CAM_SPEED * 6.0f)
 #define CAM_SENSITIVITY 0.1f
 #define CAM_YAW -90.0f
 #define CAM_PITCH -20.0f
+
+#define SIMULATION_SPEED 1.0f
+#define SIMULATION_FPS 120.0f
+
+#define NUM_PARTICLES 100
+#define GAUSSIAN_CONST 50.0f
+#define LEADER_KV 5.0f
 
 ////////////////////////    LOCAL    ////////////////////////////
 
@@ -120,13 +127,17 @@ void input_init(ProgContext ctx) {
     g_input.rendering.texOrder1 = false;
     g_input.rendering.roomSize = 10.0f;
 
-    g_input.physics.gravity = 9.81f;
-    g_input.physics.mass = 1.0f;
-    g_input.physics.fixedDt = 1.0f / 120.0f;
+    g_input.physics.fixedDt = 1.0f / SIMULATION_FPS;
     g_input.physics.sphereRadius = 0.5f;
-    g_input.physics.frictionFactor = 0.998f;
-    g_input.physics.bounceDamping = 0.8f;
     g_input.physics.dtAccumulator = 0.0f;
+    g_input.physics.simulationSpeed = SIMULATION_SPEED;
+    g_input.physics.roomForce = 10.0f;
+
+    g_input.particles.count = NUM_PARTICLES;
+    g_input.particles.gaussianConst = GAUSSIAN_CONST;
+    g_input.particles.leaderKv = LEADER_KV;
+    g_input.particles.sphereVis = SV_SPHERE;
+    g_input.particles.targetMode = TM_SPHERES;
 }
 
 InputData* getInputData(void) {
