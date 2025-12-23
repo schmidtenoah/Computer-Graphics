@@ -26,7 +26,8 @@ typedef struct {
     } cam;
 
     struct {
-        int currentTextureIndex;  // 0 or 1 for walls/ceiling
+        bool texOrder1;
+        float roomSize;
     } rendering;
 
     struct {
@@ -34,6 +35,7 @@ typedef struct {
         float fixedDt;
         float dtAccumulator;
         float sphereRadius;
+        float sphereSpeed;
         float mass;
         float frictionFactor;
         float bounceDamping;

@@ -19,4 +19,6 @@
 #define CLAMP(x, min, max) ((x < min) ? min : (x > max) ? max : x)
 #define RAND01 ((float)rand() / RAND_MAX)
 
+void utils_moveTowards(vec3 curr, vec3 target, float speed);
+
 #endif // UTILS_H

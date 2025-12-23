@@ -14,7 +14,7 @@
 #define NEAR_PLANE 0.01f
 #define FAR_PLANE 100.0f
 #define FOV_Y 60.0f
-#define ROOM_SIZE 5.0f
+#define ROOM_SIZE 10.0f
 
 ////////////////////////    LOCAL    ////////////////////////////
 
@@ -34,82 +34,21 @@ static void updateCamera(InputData *data) {
     scene_look(data->cam.pos, data->cam.dir, GLM_YUP);
 }
 
-/**
- * Draws floor (bottom face, Y = -ROOM_SIZE/2) - YELLOW
- */
-static void drawFloor(void) {
-    scene_pushMatrix();
-
-    scene_translate(0, -ROOM_SIZE / 2.0f, 0);
-    scene_rotate(90, 1, 0, 0);
-    scene_scale(ROOM_SIZE / 2.0f, ROOM_SIZE / 2.0f, 1.0f);
-
-    shader_setColor((vec3){1.0f, 1.0f, 0.0f}); // Yellow
-    model_drawSimple(MODEL_CUBE);
-
-    scene_popMatrix();
-}
-
-/**
- * Draws ceiling (top face, Y = +ROOM_SIZE/2) - BLUE
- */
-static void drawCeiling(void) {
-    scene_pushMatrix();
-
-    scene_translate(0, ROOM_SIZE / 2.0f, 0);
-    scene_rotate(-90, 1, 0, 0);
-    scene_scale(ROOM_SIZE / 2.0f, ROOM_SIZE / 2.0f, 1.0f);
-
-    shader_setColor((vec3){0.3f, 0.3f, 0.8f}); // Blue
-    model_drawSimple(MODEL_CUBE);
-
-    scene_popMatrix();
-}
-
-/**
- * Draws wall at specified position and rotation - BLUE
- */
-static void drawWall(float posX, float posY, float posZ,
-                     float rotAngle, float rotX, float rotY, float rotZ) {
-    scene_pushMatrix();
-
-    scene_translate(posX, posY, posZ);
-    scene_rotate(rotAngle, rotX, rotY, rotZ);
-    scene_scale(ROOM_SIZE / 2.0f, ROOM_SIZE / 2.0f, 1.0f);
-
-    shader_setColor((vec3){0.3f, 0.3f, 0.8f}); // Blue
-    model_drawSimple(MODEL_CUBE);
-
-    scene_popMatrix();
-}
-
-/**
- * Draws all four walls - BLUE
- */
-static void drawWalls(void) {
-    // Front wall (Z = -ROOM_SIZE/2)
-    drawWall(0, 0, -ROOM_SIZE / 2.0f, 0, 1, 0, 0);
-
-    // Back wall (Z = +ROOM_SIZE/2)
-    drawWall(0, 0, ROOM_SIZE / 2.0f, 180, 0, 1, 0);
-
-    // Left wall (X = -ROOM_SIZE/2)
-    drawWall(-ROOM_SIZE / 2.0f, 0, 0, 90, 0, 1, 0);
-
-    // Right wall (X = +ROOM_SIZE/2)
-    drawWall(ROOM_SIZE / 2.0f, 0, 0, -90, 0, 1, 0);
-}
 
 /**
  * Draws entire room (floor, ceiling, walls)
  */
-static void drawRoom(void) {
+static void drawRoom(InputData *data) {
     debug_pushRenderScope("Room");
+    scene_pushMatrix();
 
-    drawFloor();
-    drawCeiling();
-    drawWalls();
+    glCullFace(GL_FRONT);
+    float s = data->rendering.roomSize;
+    scene_scale(s, s, s);
+    model_drawTextured(MODEL_CUBE, data->rendering.texOrder1);
+    glCullFace(GL_BACK);
 
+    scene_popMatrix();
     debug_popRenderScope();
 }
 
@@ -136,11 +75,13 @@ void rendering_draw(void) {
         glEnable(GL_CULL_FACE);
     }
 
+    glEnable(GL_DEPTH_TEST);
+
     debug_pushRenderScope("Scene");
     scene_pushMatrix();
 
     updateCamera(data);
-    drawRoom();
+    drawRoom(data);
     physics_drawSpheres();
 
     scene_popMatrix();

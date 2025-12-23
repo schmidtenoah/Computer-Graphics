@@ -1,13 +1,13 @@
-#version 330 core
+#version 430 core
 
-layout(location = 0) in vec3 a_position;
-layout(location = 2) in vec2 a_texCoord;
+layout (location = 0) in vec3 pos;
+layout (location = 2) in vec2 tex;
 
-out vec2 v_texCoord;
+out vec2 texCoords;
 
 uniform mat4 u_mvpMatrix;
 
 void main() {
-    v_texCoord = a_texCoord;
-    gl_Position = u_mvpMatrix * vec4(a_position, 1.0);
+    texCoords = tex;
+    gl_Position = u_mvpMatrix * vec4(pos, 1.0);
 }

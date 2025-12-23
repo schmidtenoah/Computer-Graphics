@@ -37,7 +37,6 @@ void shader_load(void);
  */
 void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat);
 
-
 /**
  * Sets the color uniform in the simple shader.
  *
@@ -78,5 +77,11 @@ void shader_setCamPos(vec3 camPosWS);
  * @param ambientFactor How much the lights ambient takes effect.
  */
 void shader_setPointLight(vec3 color, vec3 posWS, vec3 falloff, bool enabled, float ambientFactor);
+
+/**
+ * Retrieves the Shader for drawing textured.
+ * @returns the texture Shader
+ */
+Shader* shader_getTextureShader(void);
 
 #endif // SHADER_H

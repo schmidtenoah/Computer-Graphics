@@ -12,27 +12,40 @@
 #include "utils.h"
 
 #define NUM_SPHERES 2
-#define ROOM_SIZE 5.0f
-#define ROOM_MIN (-ROOM_SIZE / 2.0f)
-#define ROOM_MAX (ROOM_SIZE / 2.0f)
+#define SPHERE_MAX_WAIT_SEC 2.5f
+#define SPHERE_SPEED 2.0f
+
+#define SPHERE_RANDOM_POS(sphere, data) { \
+    vec3 pos = {                          \
+        (RAND01 - 0.5f) * 1.9f,           \
+        (RAND01 - 0.5f) * 1.9f,           \
+        (RAND01 - 0.5f) * 1.9f            \
+    };                                    \
+    glm_vec3_scale(pos,                   \
+        data->rendering.roomSize,         \
+        sphere->targetPos                 \
+    );                                    \
+}
 
 /** Sphere data structure */
 typedef struct {
-    vec3 position;
-    vec3 velocity;
-    vec3 acceleration;
+    vec3 currPos;
+    vec3 targetPos;
+    bool waiting;
+    float waitSec;
+    bool wandering;
     vec3 color;
 } Sphere;
 
 ////////////////////////    LOCAL    ////////////////////////////
 
 /** Global sphere array */
-static Sphere g_spheres[NUM_SPHERES];
+static Sphere g_spheres[NUM_SPHERES] = { 0 };
 
 /**
  * Checks wall collisions and applies bounce
  */
-static void checkWallCollisions(Sphere *s, float radius, float damping) {
+/*static void checkWallCollisions(Sphere *s, float radius, float damping) {
     // X walls
     if (s->position[0] - radius < ROOM_MIN) {
         s->position[0] = ROOM_MIN + radius;
@@ -62,12 +75,12 @@ static void checkWallCollisions(Sphere *s, float radius, float damping) {
         s->position[2] = ROOM_MAX - radius;
         s->velocity[2] = -s->velocity[2] * damping;
     }
-}
+}*/
 
 /**
  * Euler integration step
  */
-static void integrateEuler(Sphere *s, float dt, float friction) {
+/*static void integrateEuler(Sphere *s, float dt, float friction) {
     // v += a * dt
     vec3 accelDt;
     glm_vec3_scale(s->acceleration, dt, accelDt);
@@ -80,46 +93,55 @@ static void integrateEuler(Sphere *s, float dt, float friction) {
     vec3 velDt;
     glm_vec3_scale(s->velocity, dt, velDt);
     glm_vec3_add(s->position, velDt, s->position);
-}
+}*/
 
 /**
  * Updates all spheres
  */
 static void updateSpheres(InputData *data) {
     float dt = data->physics.fixedDt;
-    vec3 gravity = {0, -data->physics.gravity, 0};
-    float friction = data->physics.frictionFactor;
-    float radius = data->physics.sphereRadius;
-    float damping = data->physics.bounceDamping;
 
     for (int i = 0; i < NUM_SPHERES; i++) {
         Sphere *s = &g_spheres[i];
+        if (!s->wandering) {
+            continue;
+        }
 
-        // Apply gravity
-        glm_vec3_copy(gravity, s->acceleration);
+        if (s->waiting) {
+            s->waitSec -= dt;
+            if (s->waitSec <= 0.0f) {
+                s->waiting = false;
+                s->waitSec = 0.0f;
 
-        // Integrate
-        integrateEuler(s, dt, friction);
+                SPHERE_RANDOM_POS(s, data);
+            }
+        } 
+        else {
+            utils_moveTowards(s->currPos, s->targetPos, data->physics.sphereSpeed * dt);
 
-        // Check collisions
-        checkWallCollisions(s, radius, damping);
+            if (glm_vec3_eqv_eps(s->currPos, s->targetPos)) {
+                s->waiting = true;
+                s->waitSec = RAND01 * SPHERE_MAX_WAIT_SEC;
+            }
+        }
+
     }
 }
 
 ////////////////////////    PUBLIC    ////////////////////////////
 
 void physics_init(void) {
-    // Sphere 1: top left
-    glm_vec3_copy(VEC3(-1.0f, 1.5f, -1.0f), g_spheres[0].position);
-    glm_vec3_zero(g_spheres[0].velocity);
-    glm_vec3_zero(g_spheres[0].acceleration);
-    glm_vec3_copy(VEC3(1.0f, 0.3f, 0.3f), g_spheres[0].color);
+    InputData *data = getInputData();
+    for (int i = 0; i < NUM_SPHERES; ++i) {
+        Sphere *s = &g_spheres[i];
 
-    // Sphere 2: top right
-    glm_vec3_copy(VEC3(1.0f, 1.5f, 1.0f), g_spheres[1].position);
-    glm_vec3_zero(g_spheres[1].velocity);
-    glm_vec3_zero(g_spheres[1].acceleration);
-    glm_vec3_copy(VEC3(0.3f, 0.3f, 1.0f), g_spheres[1].color);
+        SPHERE_RANDOM_POS(s, data);
+        s->waiting = false;
+        s->waitSec = 0.0f;
+        s->wandering = true;
+        glm_vec3_copy(VEC3X(RAND01), s->color);
+        data->physics.sphereSpeed = SPHERE_SPEED;
+    }   
 }
 
 void physics_update(void) {
@@ -140,6 +162,19 @@ void physics_cleanup(void) {
     // Nothing to clean up
 }
 
+void physics_toggleWander(void) {
+    for (int i = 0; i < NUM_SPHERES; ++i) {
+        Sphere *s = &g_spheres[i];
+
+        glm_vec3_copy(VEC3X(0), s->targetPos);
+        glm_vec3_copy(VEC3X(RAND01), s->color);
+        bool wander = !s->wandering;
+        s->wandering = wander;
+        s->waitSec = 0.0f;
+        s->waiting = wander;
+    }
+}
+
 void physics_drawSpheres(void) {
     debug_pushRenderScope("Spheres");
 
@@ -149,7 +184,7 @@ void physics_drawSpheres(void) {
     for (int i = 0; i < NUM_SPHERES; i++) {
         scene_pushMatrix();
 
-        scene_translateV(g_spheres[i].position);
+        scene_translateV(g_spheres[i].currPos);
         scene_scaleV(VEC3X(radius));
 
         shader_setColor(g_spheres[i].color);

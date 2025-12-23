@@ -7,6 +7,7 @@
 
 #include "gui.h"
 #include "input.h"
+#include "physics.h"
 
 #define GUI_WINDOW_HELP "window_help"
 #define GUI_WINDOW_MENU "window_menu"
@@ -48,11 +49,19 @@ static void gui_renderHelp(ProgContext ctx, InputData *input) {
  */
 static void renderPhysics(ProgContext ctx, InputData *input) {
     if (gui_treePush(ctx, NK_TREE_TAB, "Physics", NK_MINIMIZED)) {
-        gui_layoutRowDynamic(ctx, 25, 1);
+
+        if (gui_treePush(ctx, NK_TREE_NODE, "Spheres", NK_MINIMIZED)) {
+            gui_propertyFloat(ctx, "Speed", 0.1f, &input->physics.sphereSpeed, 15.0f, 0.1f, 0.1f);
+            gui_propertyFloat(ctx, "radius", 0.01f, &input->physics.sphereRadius, 1.0f, 0.01f, 0.01f);
+            if (gui_button(ctx, "toggle wander")) {
+                physics_toggleWander();
+            }
+
+            gui_treePop(ctx);
+        }
 
         gui_propertyFloat(ctx, "gravity", 0.0f, &input->physics.gravity, 20.0f, 0.1f, 0.1f);
         gui_propertyFloat(ctx, "fixed dt", 0.001f, &input->physics.fixedDt, 0.1f, 0.001f, 0.001f);
-        gui_propertyFloat(ctx, "radius", 0.01f, &input->physics.sphereRadius, 1.0f, 0.01f, 0.01f);
         gui_propertyFloat(ctx, "mass", 0.1f, &input->physics.mass, 10.0f, 0.1f, 0.1f);
         gui_propertyFloat(ctx, "friction", 0.9f, &input->physics.frictionFactor, 1.0f, 0.001f, 0.001f);
         gui_propertyFloat(ctx, "bounce", 0.0f, &input->physics.bounceDamping, 1.0f, 0.01f, 0.01f);
@@ -69,7 +78,12 @@ static void renderSettings(ProgContext ctx, InputData *input) {
         gui_layoutRowDynamic(ctx, 25, 1);
 
         gui_checkbox(ctx, "Wireframe", &input->showWireframe);
-        gui_propertyInt(ctx, "Wall Texture", 0, &input->rendering.currentTextureIndex, 1, 1, 1);
+        gui_checkbox(ctx, "Texture Order", &input->rendering.texOrder1);
+        gui_propertyFloat(ctx, "Room Size", 0.1f, &input->rendering.roomSize, 25.0f, 0.1f, 0.05f);
+
+        if (gui_button(ctx, "spheres wander")) {
+            physics_toggleWander();
+        }
 
         gui_treePop(ctx);
     }
@@ -80,7 +94,6 @@ static void renderSettings(ProgContext ctx, InputData *input) {
  */
 static void renderGeneral(ProgContext ctx, InputData *input) {
     if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MINIMIZED)) {
-        gui_layoutRowDynamic(ctx, 20, 2);
 
         if (gui_button(ctx, "Help")) {
             input->showHelp = !input->showHelp;

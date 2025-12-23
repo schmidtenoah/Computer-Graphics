@@ -22,7 +22,7 @@
 
 ////////////////////////    LOCAL    ////////////////////////////
 
-static Shader *modelShader, *simpleShader, *normalShader;
+static Shader *modelShader, *simpleShader, *normalShader, *textureShader;
 
 struct Material;
 
@@ -60,6 +60,7 @@ void shader_cleanup(void) {
     cleanup(modelShader);
     cleanup(simpleShader);
     cleanup(normalShader);
+    cleanup(textureShader);
 }
 
 void shader_load(void) {
@@ -85,6 +86,16 @@ void shader_load(void) {
         modelShader = newShader;
     }
 
+    newShader = shader_createVeFrShader(
+        "texture",
+        RESOURCE_PATH "shader/textured/textured.vert",
+        RESOURCE_PATH "shader/textured/textured.frag"
+    );
+    if (newShader) {
+        cleanup(textureShader);
+        textureShader = newShader;
+    }
+
     newShader = shader_createNormalsShader(FHWCG_SHADER_PATH);
     if (newShader) {
         cleanup(normalShader);
@@ -105,11 +116,8 @@ void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat) {
     shader_setMat4(modelShader, "u_viewMatrix", viewMat);
     shader_setMat4(modelShader, "u_modelviewMatrix", modelviewMat);
 
-    // Material komplett aus
     shader_setBool(modelShader, "u_useMaterial", false);
 }
-
-
 
 void shader_setColor(vec3 color) {
     shader_useShader(simpleShader);
@@ -161,4 +169,8 @@ void shader_setPointLight(vec3 color, vec3 posWS, vec3 falloff, bool enabled, fl
     shader_setVec3(modelShader, "u_pointLight.falloff", (vec3*)falloff);
     shader_setBool(modelShader, "u_pointLight.enabled", enabled);
     shader_setFloat(modelShader, "u_pointLight.ambientFactor", ambientFactor);
+}
+
+Shader* shader_getTextureShader(void) {
+    return textureShader;
 }

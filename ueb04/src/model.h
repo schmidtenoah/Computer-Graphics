@@ -28,22 +28,10 @@ void model_init(void);
 void model_cleanup(void);
 
 /**
- * Loads textures for room
- */
-void model_loadTextures(void);
-
-/**
- * Returns texture ID for given index
- * @param index Texture index (0 = floor, 1/2 = walls/ceiling)
- * @return OpenGL texture ID
- */
-GLuint model_getTextureId(int index);
-
-/**
  * Draws a model with textured shader
  * @param model Model type to draw
  */
-void model_drawTextured(ModelType model);
+void model_drawTextured(ModelType model, bool texOrder1);
 
 /**
  * Draws a model with simple color shader

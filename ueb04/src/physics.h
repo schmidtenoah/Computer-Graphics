@@ -30,4 +30,6 @@ void physics_cleanup(void);
  */
 void physics_drawSpheres(void);
 
+void physics_toggleWander(void);
+
 #endif // PHYSICS_H

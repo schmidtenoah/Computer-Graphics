@@ -64,8 +64,7 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             break;
 
         case GLFW_KEY_T:
-            data->rendering.currentTextureIndex =
-                (data->rendering.currentTextureIndex + 1) % 2;
+            data->rendering.texOrder1 = !data->rendering.texOrder1;
             break;
 
         default:
@@ -118,12 +117,13 @@ void input_init(ProgContext ctx) {
     camera_getPosition(g_input.cam.data, g_input.cam.pos);
     camera_getFront(g_input.cam.data, g_input.cam.dir);
 
-    g_input.rendering.currentTextureIndex = 0;
+    g_input.rendering.texOrder1 = false;
+    g_input.rendering.roomSize = 10.0f;
 
     g_input.physics.gravity = 9.81f;
     g_input.physics.mass = 1.0f;
     g_input.physics.fixedDt = 1.0f / 120.0f;
-    g_input.physics.sphereRadius = 0.15f;
+    g_input.physics.sphereRadius = 0.5f;
     g_input.physics.frictionFactor = 0.998f;
     g_input.physics.bounceDamping = 0.8f;
     g_input.physics.dtAccumulator = 0.0f;

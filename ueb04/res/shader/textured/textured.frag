@@ -1,10 +1,12 @@
-#version 330 core
+#version 430 core
 
-in vec2 v_texCoord;
 out vec4 fragColor;
 
-uniform sampler2D u_texture;
+in vec2 texCoords;
+
+uniform sampler2D u_textures[6];
 
 void main() {
-    fragColor = texture(u_texture, v_texCoord);
+    int faceID = (gl_PrimitiveID / 2) % 6;
+    fragColor = texture(u_textures[faceID], texCoords);
 }
