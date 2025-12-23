@@ -12,9 +12,8 @@
 #include "physics.h"
 
 #define NEAR_PLANE 0.01f
-#define FAR_PLANE 100.0f
+#define FAR_PLANE 200.0f
 #define FOV_Y 60.0f
-#define ROOM_SIZE 10.0f
 
 ////////////////////////    LOCAL    ////////////////////////////
 

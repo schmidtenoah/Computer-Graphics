@@ -15,6 +15,9 @@
 #define SPHERE_MAX_WAIT_SEC 2.5f
 #define SPHERE_SPEED 2.0f
 
+#define SPHERE_COLOR_LEADER VEC3(1, 0, 1)
+#define SPHERE_COLOR VEC3(0.4f, 0.5f, 1)
+
 #define RAND_IN_BOX(dst, boxSize) {       \
     vec3 pos = {                          \
         (RAND01 - 0.5f) * 1.9f,           \
@@ -46,6 +49,12 @@ typedef struct {
     float kWeak, kV;
     vec3 acceleration;
     vec3 velocity;
+
+    struct {
+        vec3 forward;
+        vec3 up;
+        vec3 right;
+    } basis;
 } Particle;
 
 DEFINE_ARRAY_TYPE(Particle, ParticleArr);
@@ -56,59 +65,6 @@ DEFINE_ARRAY_TYPE(Particle, ParticleArr);
 static Sphere g_spheres[NUM_SPHERES] = { 0 };
 
 static ParticleArr g_particles;
-
-/**
- * Checks wall collisions and applies bounce
- */
-/*static void checkWallCollisions(Sphere *s, float radius, float damping) {
-    // X walls
-    if (s->position[0] - radius < ROOM_MIN) {
-        s->position[0] = ROOM_MIN + radius;
-        s->velocity[0] = -s->velocity[0] * damping;
-    }
-    if (s->position[0] + radius > ROOM_MAX) {
-        s->position[0] = ROOM_MAX - radius;
-        s->velocity[0] = -s->velocity[0] * damping;
-    }
-
-    // Y walls (floor/ceiling)
-    if (s->position[1] - radius < ROOM_MIN) {
-        s->position[1] = ROOM_MIN + radius;
-        s->velocity[1] = -s->velocity[1] * damping;
-    }
-    if (s->position[1] + radius > ROOM_MAX) {
-        s->position[1] = ROOM_MAX - radius;
-        s->velocity[1] = -s->velocity[1] * damping;
-    }
-
-    // Z walls
-    if (s->position[2] - radius < ROOM_MIN) {
-        s->position[2] = ROOM_MIN + radius;
-        s->velocity[2] = -s->velocity[2] * damping;
-    }
-    if (s->position[2] + radius > ROOM_MAX) {
-        s->position[2] = ROOM_MAX - radius;
-        s->velocity[2] = -s->velocity[2] * damping;
-    }
-}*/
-
-/**
- * Euler integration step
- */
-/*static void integrateEuler(Sphere *s, float dt, float friction) {
-    // v += a * dt
-    vec3 accelDt;
-    glm_vec3_scale(s->acceleration, dt, accelDt);
-    glm_vec3_add(s->velocity, accelDt, s->velocity);
-
-    // Apply friction
-    glm_vec3_scale(s->velocity, friction, s->velocity);
-
-    // p += v * dt
-    vec3 velDt;
-    glm_vec3_scale(s->velocity, dt, velDt);
-    glm_vec3_add(s->position, velDt, s->position);
-}*/
 
 /**
  * Updates all spheres
@@ -149,8 +105,8 @@ static void getTargetAcceleration(Particle *p, vec3 target, vec3 dest) {
     glm_vec3_scale(dest, p->kWeak, dest);
 }
 
-static void computeAcceleration(InputData *data, Particle *p, vec3 dest) {
-    switch (data->particles.targetMode) {
+static void computeAcceleration(TargetMode mode, InputData *data, Particle *p, vec3 dest) {
+    switch (mode) {
         case TM_SPHERES: {
             vec3 temp;
             for (int i = 0; i < NUM_SPHERES; i++) {
@@ -170,18 +126,18 @@ static void computeAcceleration(InputData *data, Particle *p, vec3 dest) {
         }
 
         case TM_CENTER: {
-            vec3 center;
+            vec3 center = { 0, 0, 0 };
             for (int i = 0; i < g_particles.size; ++i) {
                 glm_vec3_add(center, g_particles.data[i].pos, center);
             }
-            glm_vec3_sub(center, p->pos, dest);
-            glm_vec3_normalize(dest);
-            glm_vec3_scale(dest, p->kWeak / g_particles.size, dest);
+            glm_vec3_scale(center, 1.0f / g_particles.size, center);
+            
+            getTargetAcceleration(p, center, dest);
             break;
         }
 
         default:
-            glm_vec3_copy(VEC3X(1.0f), dest);
+            getTargetAcceleration(p, VEC3X(1.0f), dest);
             break;
     }
 }
@@ -209,6 +165,16 @@ static void applyRoomCollision(InputData *data, Particle *p) {
     glm_vec3_add(force, p->velocity, p->velocity);
 }
 
+static void updateBasis(Particle *p) {
+    glm_vec3_normalize_to(p->velocity, p->basis.forward);
+
+    glm_vec3_cross(p->basis.forward, p->acceleration, p->basis.right);
+    glm_vec3_normalize(p->basis.right);
+
+    glm_vec3_cross(p->basis.right, p->basis.forward, p->basis.up);
+    glm_vec3_normalize(p->basis.up);
+}
+
 static void updateParticles(InputData *data) {
     float dt = data->physics.fixedDt;
     float leaderKv = data->particles.leaderKv;
@@ -218,7 +184,10 @@ static void updateParticles(InputData *data) {
     for (int i = 0; i < g_particles.size; ++i) {
         Particle *p = &g_particles.data[i];
 
-        computeAcceleration(data, p, p->acceleration);
+        TargetMode target = (data->particles.targetMode == TM_LEADER && 
+            data->particles.leaderIdx == i) ? TM_SPHERES : data->particles.targetMode
+        ;
+        computeAcceleration(target, data, p, p->acceleration);
 
         vec3 deltaA;
         glm_vec3_scale(p->acceleration, dt, deltaA);
@@ -232,6 +201,27 @@ static void updateParticles(InputData *data) {
         vec3 deltaV;
         glm_vec3_scale(p->velocity, dt, deltaV);
         glm_vec3_add(p->pos, deltaV, p->pos);
+
+        updateBasis(p);
+    }
+}
+
+static void rotateParticle(Particle *p, SphereVis visMode) {
+    vec3 ref;
+    glm_vec3_copy((visMode == SV_LINE) ? VEC3(1.0f, 0.0f, 0.0f) : VEC3(0.0f, 1.0f, 0.0f), ref);
+    vec3 axis;
+    glm_vec3_cross(ref, p->basis.forward, axis);
+
+    float dot = glm_clamp(glm_vec3_dot(ref, p->basis.forward), -1.0f, 1.0f);
+    float angle = acosf(dot);
+
+    if (glm_vec3_norm2(axis) < 1e-6f) {
+        if (dot > 0.0f) {
+            scene_rotate(180.0f, 0, 1, 0);
+        }
+    } else {
+        glm_vec3_normalize(axis);
+        scene_rotateV(glm_deg(angle), axis);
     }
 }
 
@@ -310,19 +300,43 @@ void physics_drawParticles(void) {
     debug_pushRenderScope("Particles");
     scene_pushMatrix();
 
-    //InputData *data = getInputData();
+    InputData *data = getInputData();
+
+    vec3 scale;
+    ModelType model;
+    switch (data->particles.sphereVis) {
+        case SV_SPHERE: 
+            model = MODEL_SPHERE;
+            glm_vec3_copy(VEC3X(0.1f), scale);
+            break;
+        case SV_TRIANGLE: 
+            glDisable(GL_CULL_FACE);
+            model = MODEL_TRIANGLE;
+            glm_vec3_copy(VEC3(0.1f, 0.3f, 0.3f), scale);
+            break;
+        case SV_LINE:
+        default:
+            model = MODEL_LINE;
+            glm_vec3_copy(VEC3(0.2f, 0.2f, 0.2f), scale);
+            break;
+    }
 
     for (int i = 0; i < g_particles.size; ++i) {
         Particle *p = &g_particles.data[i];
         scene_pushMatrix();
 
         scene_translateV(p->pos);
-        scene_scale(0.1f, 0.1f, 0.1f);
-        model_drawSimple(MODEL_SPHERE);
+        rotateParticle(p, data->particles.sphereVis);
+        scene_scaleV(scale);
+        shader_setColor((data->particles.targetMode == TM_LEADER &&
+             data->particles.leaderIdx == i) ? SPHERE_COLOR_LEADER : SPHERE_COLOR
+        );
+        model_drawSimple(model);
 
         scene_popMatrix();
     }
 
+    glEnable(GL_CULL_FACE);
     scene_popMatrix();
     debug_popRenderScope();
 }

@@ -68,15 +68,6 @@ static void renderPhysics(ProgContext ctx, InputData *input) {
             gui_treePop(ctx);
         }
 
-         if (gui_treePush(ctx, NK_TREE_NODE, "Particles", NK_MINIMIZED)) {
-            gui_propertyFloat(ctx, "Gaussian Const", 30.0f, &input->particles.gaussianConst, 70.0f, 0.1f, 0.05f);
-            if (input->particles.targetMode == TM_LEADER) {
-                gui_propertyFloat(ctx, "LeaderKv", 2.0f, &input->particles.leaderKv, 10.0f, 0.01f, 0.05f);
-            }
-
-            gui_treePop(ctx);
-        }
-
         gui_propertyFloat(ctx, "fixed dt", 0.001f, &input->physics.fixedDt, 0.1f, 0.001f, 0.001f);
         gui_propertyFloat(ctx, "sim speed", 0.001f, &input->physics.simulationSpeed, 10.0f, 0.001f, 0.1f);
 
@@ -95,8 +86,17 @@ static void renderSettings(ProgContext ctx, InputData *input) {
         gui_checkbox(ctx, "Texture Order", &input->rendering.texOrder1);
         gui_propertyFloat(ctx, "Room Size", 0.1f, &input->rendering.roomSize, 25.0f, 0.1f, 0.05f);
 
+        gui_treePop(ctx);
+    }
+
+    if (gui_treePush(ctx, NK_TREE_TAB, "Particles", NK_MINIMIZED)) {
         if (gui_button(ctx, "spheres wander")) {
             physics_toggleWander();
+        }
+
+        gui_propertyFloat(ctx, "Gaussian Const", 30.0f, &input->particles.gaussianConst, 150.0f, 0.1f, 0.05f);
+        if (input->particles.targetMode == TM_LEADER) {
+            gui_propertyFloat(ctx, "LeaderKv", 2.0f, &input->particles.leaderKv, 10.0f, 0.01f, 0.05f);
         }
 
         int count = input->particles.count;
@@ -105,15 +105,18 @@ static void renderSettings(ProgContext ctx, InputData *input) {
             physics_updateParticleCount(count);
         }
 
+        gui_layoutRowDynamic(ctx, 25, 2);
+        gui_label(ctx, "Visual:", NK_TEXT_LEFT);
         input->particles.sphereVis = gui_dropdown(ctx, visModeDropdown, NK_LEN(visModeDropdown), 
             input->particles.sphereVis, 20, nk_vec2(200, 200)
         );
 
+        gui_label(ctx, "Target:", NK_TEXT_LEFT);
         input->particles.targetMode = gui_dropdown(ctx, targetModeDropdown, NK_LEN(targetModeDropdown), 
             input->particles.targetMode, 20, nk_vec2(200, 200)
         );
 
-
+        gui_layoutRowDynamic(ctx, 25, 1);
 
         gui_treePop(ctx);
     }

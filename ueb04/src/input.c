@@ -109,6 +109,7 @@ static void input_mouseMoveEvent(ProgContext ctx, double x, double y) {
 ////////////////////////    PUBLIC    ////////////////////////////
 
 void input_init(ProgContext ctx) {
+    glLineWidth(0.5f);
     g_input.isFullscreen = false;
     g_input.showHelp = false;
     g_input.showMenu = true;

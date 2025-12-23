@@ -11,7 +11,6 @@
 #include "rendering.h"
 #include "model.h"
 #include "physics.h"
-#include "logic.h"
 
 #define DEFAULT_WINDOW_WIDTH 1024
 #define DEFAULT_WINDOW_HEIGHT 768
@@ -28,7 +27,6 @@ static void init(ProgContext ctx) {
     model_init();
     physics_init();
     rendering_init();
-    logic_init();
     rendering_resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 }
 
@@ -36,7 +34,6 @@ static void init(ProgContext ctx) {
  * Cleans up all modules
  */
 static void cleanup(ProgContext ctx) {
-    logic_cleanup();
     gui_cleanup(ctx);
     model_cleanup();
     physics_cleanup();
@@ -65,7 +62,6 @@ int main(void) {
         d->deltaTime = d->paused ? 0.0f : dt;
 
         camera_updateCamera(d->cam.data, dt);
-        logic_update(d);
         physics_update();
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
