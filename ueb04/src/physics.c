@@ -165,11 +165,34 @@ static void applyRoomCollision(InputData *data, Particle *p) {
     glm_vec3_add(force, p->velocity, p->velocity);
 }
 
-static void updateBasis(Particle *p) {
+static void updateBasisWrong(Particle *p) {
     glm_vec3_normalize_to(p->velocity, p->basis.forward);
 
     glm_vec3_cross(p->basis.forward, p->acceleration, p->basis.right);
     glm_vec3_normalize(p->basis.right);
+
+    glm_vec3_cross(p->basis.right, p->basis.forward, p->basis.up);
+    glm_vec3_normalize(p->basis.up);
+}
+
+static void updateBasis(Particle *p) {
+    vec3 upRef = {0, 1, 0};
+    if (glm_vec3_norm2(p->velocity) < 1e-6f) {
+        return;
+    }
+
+    glm_vec3_normalize_to(p->velocity, p->basis.forward);
+
+    vec3 tmpRight;
+    if (glm_vec3_norm2(p->acceleration) < 1e-6f) {
+        glm_vec3_cross(p->basis.forward, upRef, tmpRight);
+    } else {
+        glm_vec3_cross(p->basis.forward, p->acceleration, tmpRight);
+        if (glm_vec3_norm2(tmpRight) < 1e-6f) {
+            glm_vec3_cross(p->basis.forward, upRef, tmpRight);
+        }
+    }
+    glm_normalize_to(tmpRight, p->basis.right);
 
     glm_vec3_cross(p->basis.right, p->basis.forward, p->basis.up);
     glm_vec3_normalize(p->basis.up);
