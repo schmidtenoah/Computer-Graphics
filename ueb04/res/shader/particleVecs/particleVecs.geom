@@ -16,10 +16,11 @@ void main() {
     vec3 p = gs_in[0].worldPos;
 
     // Acceleration line
+    float scale = 0.001;
     gsColor = vec3(1, 0, 0);
     gl_Position = u_mvpMatrix * vec4(p, 1.0);
     EmitVertex();
-    gl_Position = u_mvpMatrix * vec4(p + gs_in[0].acceleration, 1.0);
+    gl_Position = u_mvpMatrix * vec4(p + gs_in[0].acceleration * scale, 1.0);
     EmitVertex();
     EndPrimitive();
 

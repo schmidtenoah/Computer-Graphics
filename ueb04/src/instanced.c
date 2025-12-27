@@ -110,6 +110,18 @@ void instanced_draw(CGMesh *m, bool instanced) {
     glBindVertexArray(0);
 }
 
+void instanced_drawParticleVis(CGMesh *m) {
+    glBindVertexArray(m->vao);
+
+    if (m->numIndices) {
+        glDrawElementsInstanced(m->mode, m->numIndices, GL_UNSIGNED_INT, 0, g_vbo.size);
+    } else {
+        glDrawArraysInstanced(m->mode, 0, m->numVertices, g_vbo.size);
+    }
+
+    glBindVertexArray(0);
+}
+
 void instanced_init(void) {
     g_vbo.size = START_NUM_PARTICLES;
     g_vbo.instances = malloc(g_vbo.size * sizeof(ParticleInstance));

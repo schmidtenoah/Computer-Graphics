@@ -23,6 +23,8 @@ void instanced_disposeMesh(CGMesh  *m);
 
 void instanced_draw(CGMesh *m, bool instanced);
 
+void instanced_drawParticleVis(CGMesh *m);
+
 void instanced_init(void);
 
 void instanced_cleanup(void);

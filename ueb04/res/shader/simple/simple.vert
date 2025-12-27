@@ -22,15 +22,13 @@ void main() {
     vec3 worldPos = pos;
 
     if (u_drawInstanced) {
-        /*vec3 f = normalize(forward);
-        vec3 u = vec3(0.0, 1.0, 0.0);
-        if (abs(dot(f, u)) > 0.99) u = vec3(1.0, 0.0, 0.0);
+        vec3 f = normalize(forward);
+        vec3 u = normalize(up);
         vec3 r = normalize(cross(u, f));
         u = cross(f, r);
+        mat3 rot = mat3(r, u, f);
 
-        worldPos = offset + (r * pos.x + u * pos.y, f * pos.z);*/
-
-        worldPos = pos * u_localScale + offset;
+        worldPos = rot * (pos * u_localScale) + offset;
         isLeader = ((u_leaderIdx != -1) && (gl_InstanceID == u_leaderIdx)) ? 0 : 1;
     }
 

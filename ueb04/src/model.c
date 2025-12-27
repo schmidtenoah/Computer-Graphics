@@ -92,6 +92,11 @@ static void model_initSphere(void) {
     free(indices);
 }
 
+static void model_initPoint(void) {
+    Vertex point = {0, 0, 0, 0, 0, 0, 0, 0};
+    g_models[MODEL_POINT] = instanced_createMesh(&point, 1, NULL, 0, GL_POINTS);
+}
+
 /**
  * Creates Triangle mesh
  */
@@ -109,8 +114,8 @@ static void model_initTriangle(void) {
  */
 static void model_initLine(void) {
     Vertex lineVertices[2];
-    lineVertices[0] = Vertex3Tex(-0.5f, 0.0f, 0.0f, 0, 0, 1, 0.0f, 0.0f);
-    lineVertices[1] = Vertex3Tex( 0.5f, 0.0f, 0.0f, 0, 0, 1, 1.0f, 1.0f);
+    lineVertices[0] = Vertex3Tex(0.0f, -0.5f, 0.0f, 0, 0, 1, 0.0f, 0.0f);
+    lineVertices[1] = Vertex3Tex(0.0f,  0.5f, 0.0f, 0, 0, 1, 1.0f, 1.0f);
     
     g_models[MODEL_LINE] = instanced_createMesh(lineVertices, 2, NULL, 0, GL_LINES);
 }
@@ -216,11 +221,13 @@ void model_init(void) {
     model_initTriangle();
     model_initLine();
     model_loadTextures();
+    model_initPoint();
 
     instanced_init();
     instanced_bindAttrib(g_models[MODEL_SPHERE]);
     instanced_bindAttrib(g_models[MODEL_LINE]);
     instanced_bindAttrib(g_models[MODEL_TRIANGLE]);
+    instanced_bindAttrib(g_models[MODEL_POINT]);
 }
 
 void model_cleanup(void) {
@@ -257,13 +264,15 @@ void model_drawSimple(ModelType model) {
     instanced_draw(g_models[model], false);
 }
 
-void model_drawInstanced(ModelType model, bool setMVP) {
+void model_drawInstanced(ModelType model) {
     if (model >= MODEL_MESH_COUNT) {
         return;
     }
 
-    if (setMVP) {
-        shader_setSimpleMVP(true);
-    }
+    shader_setSimpleMVP(true);
     instanced_draw(g_models[model], true);
+}
+
+void model_drawParticleVis(void) {
+    instanced_drawParticleVis(g_models[MODEL_POINT]);
 }

@@ -16,6 +16,7 @@ typedef enum {
     MODEL_CUBE,
     MODEL_TRIANGLE,
     MODEL_LINE,
+    MODEL_POINT,
     MODEL_MESH_COUNT
 } ModelType;
 
@@ -41,6 +42,8 @@ void model_drawTextured(ModelType model, bool texOrder1);
  */
 void model_drawSimple(ModelType model);
 
-void model_drawInstanced(ModelType model, bool setMVP);
+void model_drawInstanced(ModelType model);
+
+void model_drawParticleVis(void);
 
 #endif // MODEL_H

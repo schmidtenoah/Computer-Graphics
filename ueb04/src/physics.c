@@ -16,7 +16,6 @@
 #define SPHERE_MAX_WAIT_SEC 2.5f
 #define SPHERE_SPEED 2.0f
 
-#define SPHERE_COLOR_LEADER VEC3(1, 0, 1)
 #define SPHERE_COLOR VEC3(0.4f, 0.5f, 1)
 
 #define RAND_IN_BOX(dst, boxSize) {       \
@@ -336,12 +335,12 @@ void physics_drawParticles(void) {
         case SV_TRIANGLE: 
             glDisable(GL_CULL_FACE);
             model = MODEL_TRIANGLE;
-            glm_vec3_copy(VEC3(0.1f, 0.3f, 0.3f), scale);
+            glm_vec3_copy(VEC3(0.3f, 0.05f, 1.0f), scale);
             break;
         case SV_LINE:
         default:
             model = MODEL_LINE;
-            glm_vec3_copy(VEC3(0.2f, 0.2f, 0.2f), scale);
+            glm_vec3_copy(VEC3(0.2f, 0.2f, 1.0f), scale);
             break;
     }
 
@@ -363,18 +362,17 @@ void physics_drawParticles(void) {
     int leaderIdx = (data->particles.targetMode == TM_LEADER) ? data->particles.leaderIdx : -1;
     shader_setColor(SPHERE_COLOR);
     shader_setSimpleInstanceData(scale, leaderIdx);
-    model_drawInstanced(model, true);
+    model_drawInstanced(model);
 
     if (data->particles.visVectors) {
         shader_setParticleVisData(scale);
-        model_drawInstanced(model, false);
+        model_drawParticleVis();
     }
 
     glEnable(GL_CULL_FACE);
     scene_popMatrix();
     debug_popRenderScope();
 }
-
 
 void physics_updateParticleCount(int count) {
     InputData *data = getInputData();
