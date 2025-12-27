@@ -22,7 +22,7 @@
 
 ////////////////////////    LOCAL    ////////////////////////////
 
-static Shader *modelShader, *simpleShader, *normalShader, *textureShader;
+static Shader *pVecsShader, *simpleShader, *normalShader, *textureShader;
 
 struct Material;
 
@@ -54,10 +54,19 @@ static void worldToView(vec3 vec, vec3 dest, bool isPos) {
     glm_vec3_copy((vec3) {vecWS[0], vecWS[1], vecWS[2]}, dest);
 }
 
+static Shader* createParticleVecsShader(void) {
+    Shader* shader = shader_createShader();
+    shader_attachShaderFile(shader, GL_VERTEX_SHADER,   RESOURCE_PATH "shader/particleVecs/particleVecs.vert");
+    shader_attachShaderFile(shader, GL_GEOMETRY_SHADER, RESOURCE_PATH "shader/particleVecs/particleVecs.geom");
+    shader_attachShaderFile(shader, GL_FRAGMENT_SHADER, RESOURCE_PATH "shader/particleVecs/particleVecs.frag");
+
+    shader_buildShader("Particle Vectors", shader);
+    return shader;
+}
 ////////////////////////    PUBLIC    ////////////////////////////
 
 void shader_cleanup(void) {
-    cleanup(modelShader);
+    cleanup(pVecsShader);
     cleanup(simpleShader);
     cleanup(normalShader);
     cleanup(textureShader);
@@ -76,14 +85,10 @@ void shader_load(void) {
         simpleShader = newShader;
     }
 
-    newShader = shader_createVeFrShader(
-        "model",
-        RESOURCE_PATH "shader/model/model.vert",
-        RESOURCE_PATH "shader/model/model.frag"
-    );
+    newShader = createParticleVecsShader();
     if (newShader) {
-        cleanup(modelShader);
-        modelShader = newShader;
+        cleanup(pVecsShader);
+        pVecsShader = newShader;
     }
 
     newShader = shader_createVeFrShader(
@@ -105,18 +110,6 @@ void shader_load(void) {
         shader_setFloat(normalShader, "u_normalLength", NORMAL_LENGTH);
         shader_setVec3(normalShader, "u_color", &NORMAL_COLOR);
     }
-}
-
-void shader_setMVP(mat4 *viewMat, mat4 *modelviewMat) {
-    shader_useShader(modelShader);
-
-    mat4 mat;
-    scene_getMVP(mat);
-    shader_setMat4(modelShader, "u_mvpMatrix", &mat);
-    shader_setMat4(modelShader, "u_viewMatrix", viewMat);
-    shader_setMat4(modelShader, "u_modelviewMatrix", modelviewMat);
-
-    shader_setBool(modelShader, "u_useMaterial", false);
 }
 
 void shader_setColor(vec3 color) {
@@ -144,32 +137,18 @@ void shader_setSimpleMVP(bool drawInstanced) {
     shader_setBool(simpleShader, "u_drawInstanced", drawInstanced);
 }
 
-void shader_setTexture(GLuint textureId, bool useTexture) {
-    shader_useShader(modelShader);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-
-    shader_setInt(modelShader, "u_texture", 0);
-    shader_setBool(modelShader, "u_useTexture", useTexture);
+void shader_setSimpleInstanceData(vec3 scale, int leaderIdx) {
+    shader_useShader(simpleShader);
+    shader_setVec3(simpleShader, "u_localScale", (vec3*) scale);
+    shader_setInt(simpleShader, "u_leaderIdx", leaderIdx);
 }
 
-void shader_setCamPos(vec3 camPosWS) {
-    shader_useShader(modelShader);
-    vec3 camPosVS = {0};
-    worldToView(camPosWS, camPosVS, true);
-    shader_setVec3(modelShader, "u_camPosVS", (vec3*)camPosVS);
-}
-
-void shader_setPointLight(vec3 color, vec3 posWS, vec3 falloff, bool enabled, float ambientFactor) {
-    shader_useShader(modelShader);
-    vec3 posVS = {0};
-    worldToView(posWS, posVS, true);
-    shader_setVec3(modelShader, "u_pointLight.posVS", &posVS);
-    shader_setVec3(modelShader, "u_pointLight.color", (vec3*)color);
-    shader_setVec3(modelShader, "u_pointLight.falloff", (vec3*)falloff);
-    shader_setBool(modelShader, "u_pointLight.enabled", enabled);
-    shader_setFloat(modelShader, "u_pointLight.ambientFactor", ambientFactor);
+void shader_setParticleVisData(vec3 scale) {
+    shader_useShader(pVecsShader);
+    shader_setVec3(pVecsShader, "u_localScale", (vec3*) scale);
+    mat4 mat;
+    scene_getMVP(mat);
+    shader_setMat4(pVecsShader, "u_mvpMatrix", &mat);
 }
 
 Shader* shader_getTextureShader(void) {

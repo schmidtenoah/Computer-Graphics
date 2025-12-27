@@ -138,6 +138,7 @@ void input_init(ProgContext ctx) {
     g_input.particles.leaderKv = LEADER_KV;
     g_input.particles.sphereVis = SV_SPHERE;
     g_input.particles.targetMode = TM_SPHERES;
+    g_input.particles.visVectors = true;
 }
 
 InputData* getInputData(void) {

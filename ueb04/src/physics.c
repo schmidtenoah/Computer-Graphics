@@ -360,7 +360,15 @@ void physics_drawParticles(void) {
         scene_popMatrix();
     }*/
 
-    model_drawInstanced(model);
+    int leaderIdx = (data->particles.targetMode == TM_LEADER) ? data->particles.leaderIdx : -1;
+    shader_setColor(SPHERE_COLOR);
+    shader_setSimpleInstanceData(scale, leaderIdx);
+    model_drawInstanced(model, true);
+
+    if (data->particles.visVectors) {
+        shader_setParticleVisData(scale);
+        model_drawInstanced(model, false);
+    }
 
     glEnable(GL_CULL_FACE);
     scene_popMatrix();

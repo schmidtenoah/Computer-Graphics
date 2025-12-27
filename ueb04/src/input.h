@@ -62,6 +62,7 @@ typedef struct {
         TargetMode targetMode;
         float leaderKv;
         int leaderIdx;
+        bool visVectors;
     } particles;
 
 } InputData;

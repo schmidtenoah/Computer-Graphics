@@ -94,6 +94,8 @@ static void renderSettings(ProgContext ctx, InputData *input) {
             physics_toggleWander();
         }
 
+        gui_checkbox(ctx, "show vectors", &input->particles.visVectors);
+
         gui_propertyFloat(ctx, "Gaussian Const", 30.0f, &input->particles.gaussianConst, 150.0f, 0.1f, 0.05f);
         if (input->particles.targetMode == TM_LEADER) {
             gui_propertyFloat(ctx, "LeaderKv", 2.0f, &input->particles.leaderKv, 10.0f, 0.01f, 0.05f);

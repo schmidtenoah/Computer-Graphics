@@ -88,6 +88,8 @@ static void model_initSphere(void) {
     }
 
     g_models[MODEL_SPHERE] = instanced_createMesh(vertices, numVertices, indices, numIndices, GL_TRIANGLES);
+    free(vertices);
+    free(indices);
 }
 
 /**
@@ -255,11 +257,13 @@ void model_drawSimple(ModelType model) {
     instanced_draw(g_models[model], false);
 }
 
-void model_drawInstanced(ModelType model) {
+void model_drawInstanced(ModelType model, bool setMVP) {
     if (model >= MODEL_MESH_COUNT) {
         return;
     }
 
-    shader_setSimpleMVP(true);
+    if (setMVP) {
+        shader_setSimpleMVP(true);
+    }
     instanced_draw(g_models[model], true);
 }

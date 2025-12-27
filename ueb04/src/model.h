@@ -41,6 +41,6 @@ void model_drawTextured(ModelType model, bool texOrder1);
  */
 void model_drawSimple(ModelType model);
 
-void model_drawInstanced(ModelType model);
+void model_drawInstanced(ModelType model, bool setMVP);
 
 #endif // MODEL_H

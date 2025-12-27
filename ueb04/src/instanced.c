@@ -165,7 +165,13 @@ void instanced_resize(int count) {
     }
 
     g_vbo.size = count;
-    g_vbo.instances = realloc(g_vbo.instances, g_vbo.size * sizeof(ParticleInstance));
+    ParticleInstance *tmp = realloc(g_vbo.instances, g_vbo.size * sizeof(ParticleInstance));
+    if (!tmp) {
+        printf("Could not allocate memory in instanced_resize!");
+        return;
+    }
+
+    g_vbo.instances = tmp;
     glBindBuffer(GL_ARRAY_BUFFER, g_vbo.buffer);
     glBufferData(GL_ARRAY_BUFFER, g_vbo.size * sizeof(ParticleInstance), NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
