@@ -10,6 +10,7 @@
 #include "model.h"
 #include "shader.h"
 #include "utils.h"
+#include "instanced.h"
 
 #define NUM_SPHERES 2
 #define SPHERE_MAX_WAIT_SEC 2.5f
@@ -175,6 +176,27 @@ static void updateBasis(Particle *p) {
     glm_vec3_normalize(p->basis.up);
 }
 
+static void updateParticleInstances(void) {
+    vec3 *pos          = malloc(g_particles.size * sizeof(vec3));
+    vec3 *acceleration = malloc(g_particles.size * sizeof(vec3));
+    vec3 *up           = malloc(g_particles.size * sizeof(vec3));
+    vec3 *forward      = malloc(g_particles.size * sizeof(vec3));
+
+    for (int i = 0; i < g_particles.size; ++i) {
+        glm_vec3_copy(g_particles.data[i].pos, pos[i]);
+        glm_vec3_copy(g_particles.data[i].acceleration, acceleration[i]);
+        glm_vec3_copy(g_particles.data[i].basis.up, up[i]);
+        glm_vec3_copy(g_particles.data[i].basis.forward, forward[i]);
+    }
+
+    instanced_update((int)g_particles.size, pos, acceleration, up, forward);
+
+    free(pos);
+    free(acceleration);
+    free(up);
+    free(forward);
+}
+
 static void updateParticles(InputData *data) {
     float dt = data->physics.fixedDt;
     float leaderKv = data->particles.leaderKv;
@@ -256,6 +278,8 @@ void physics_update(void) {
         updateParticles(data);
         data->physics.dtAccumulator -= data->physics.fixedDt;
     }
+
+    updateParticleInstances();
 }
 
 void physics_cleanup(void) {
@@ -321,7 +345,7 @@ void physics_drawParticles(void) {
             break;
     }
 
-    for (int i = 0; i < g_particles.size; ++i) {
+    /*for (int i = 0; i < g_particles.size; ++i) {
         Particle *p = &g_particles.data[i];
         scene_pushMatrix();
 
@@ -334,7 +358,9 @@ void physics_drawParticles(void) {
         model_drawSimple(model);
 
         scene_popMatrix();
-    }
+    }*/
+
+    model_drawInstanced(model);
 
     glEnable(GL_CULL_FACE);
     scene_popMatrix();
@@ -359,4 +385,5 @@ void physics_updateParticleCount(int count) {
     }
 
     data->particles.count = count;
+    instanced_resize(count);
 }

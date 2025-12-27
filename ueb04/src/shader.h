@@ -53,7 +53,7 @@ void shader_setNormals(void);
 /**
  * Sets the current Stack MVP-Matrix for the Simple-Shader.
  */
-void shader_setSimpleMVP(void);
+void shader_setSimpleMVP(bool drawInstanced);
 
 /**
  * Sets which texture to use for the Model-Shader.

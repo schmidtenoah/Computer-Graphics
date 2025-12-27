@@ -18,7 +18,6 @@
 #define SIMULATION_SPEED 1.0f
 #define SIMULATION_FPS 120.0f
 
-#define NUM_PARTICLES 100
 #define GAUSSIAN_CONST 50.0f
 #define LEADER_KV 5.0f
 
@@ -134,7 +133,7 @@ void input_init(ProgContext ctx) {
     g_input.physics.simulationSpeed = SIMULATION_SPEED;
     g_input.physics.roomForce = 10.0f;
 
-    g_input.particles.count = NUM_PARTICLES;
+    g_input.particles.count = START_NUM_PARTICLES;
     g_input.particles.gaussianConst = GAUSSIAN_CONST;
     g_input.particles.leaderKv = LEADER_KV;
     g_input.particles.sphereVis = SV_SPHERE;

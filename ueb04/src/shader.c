@@ -135,12 +135,13 @@ void shader_setNormals(void) {
     shader_setMat4(normalShader, "u_projMatrix", &mat);
 }
 
-void shader_setSimpleMVP(void) {
+void shader_setSimpleMVP(bool drawInstanced) {
     shader_useShader(simpleShader);
 
     mat4 mat;
     scene_getMVP(mat);
     shader_setMat4(simpleShader, "u_mvpMatrix", &mat);
+    shader_setBool(simpleShader, "u_drawInstanced", drawInstanced);
 }
 
 void shader_setTexture(GLuint textureId, bool useTexture) {

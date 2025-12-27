@@ -10,6 +10,8 @@
 
 #include <fhwcg/fhwcg.h>
 
+#define START_NUM_PARTICLES 100
+
 typedef enum {
     TM_SPHERES,
     TM_CENTER, 

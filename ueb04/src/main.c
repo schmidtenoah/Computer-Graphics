@@ -13,7 +13,7 @@
 #include "physics.h"
 
 #define DEFAULT_WINDOW_WIDTH 1024
-#define DEFAULT_WINDOW_HEIGHT 768
+#define DEFAULT_WINDOW_HEIGHT 612
 
 ////////////////////////    LOCAL    ////////////////////////////
 

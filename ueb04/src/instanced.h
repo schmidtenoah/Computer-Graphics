@@ -11,22 +11,26 @@
 #include <fhwcg/fhwcg.h>
 #include "input.h"
 
-typedef struct {
-    GLuint vao, vbo, ebo;
-    GLsizei numVertices, numIndices;
-    GLenum mode; 
-} CGMesh;
+typedef struct CGMesh CGMesh;
 
-CGMesh* instanced_createMesh(const Vertex *vertices, const int numVerts, const GLuint* const indices, const int numInd, GLenum mode);
+CGMesh* instanced_createMesh(
+    const Vertex *vertices, const int numVerts, 
+    const GLuint* indices, const int numInd, 
+    GLenum mode
+);
 
 void instanced_disposeMesh(CGMesh  *m);
 
-void instanced_draw(CGMesh *m);
+void instanced_draw(CGMesh *m, bool instanced);
 
 void instanced_init(void);
 
 void instanced_cleanup(void);
 
 void instanced_bindAttrib(CGMesh *m);
+
+void instanced_resize(int count);
+
+void instanced_update(int count, vec3* pos, vec3* acceleration, vec3* up, vec3* forward);
 
 #endif // INSTANCED_H

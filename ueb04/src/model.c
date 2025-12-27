@@ -9,6 +9,7 @@
 #include "model.h"
 #include "shader.h"
 #include "rendering.h"
+#include "instanced.h"
 
 #define SPHERE_NUM_SLICES 20
 #define SPHERE_NUM_STACKS 20
@@ -29,7 +30,7 @@
 ////////////////////////    LOCAL    ////////////////////////////
 
 /** Array of mesh models */
-static Mesh *g_models[MODEL_MESH_COUNT];
+static CGMesh *g_models[MODEL_MESH_COUNT];
 static GLuint g_textures[TEXTURE_COUNT];
 
 // Texture Idx used for the 6 sides of a cube
@@ -40,7 +41,53 @@ static int g_cubeOrder2[] = {2, 2, 2, 1, 2, 2};
  * Creates sphere mesh
  */
 static void model_initSphere(void) {
-    g_models[MODEL_SPHERE] = mesh_createSphere(SPHERE_NUM_SLICES, SPHERE_NUM_STACKS);
+    int numSlices = SPHERE_NUM_SLICES;
+    int numStacks = SPHERE_NUM_STACKS;
+
+    GLuint numVertices = (numSlices + 1) * (numStacks + 1);
+    GLuint numIndices = numSlices * numStacks * 6;
+
+    Vertex* vertices = malloc(sizeof(Vertex) * numVertices);
+    GLuint* indices = malloc(sizeof(GLuint) * numIndices);
+
+    int indexVA = 0;
+    int indexIA = 0;
+
+    for (int stack = 0; stack <= numStacks; stack++) {
+        float stackAngle = ((float)M_PI) / 2 - stack * ((float)M_PI) / numStacks;
+        float xy = cosf(stackAngle);
+        float z = sinf(stackAngle);
+
+        for (int slice = 0; slice <= numSlices; slice++) {
+            float sliceAngle = ((float)M_PI) * slice * 2 / numSlices;
+            float x = xy * cosf(sliceAngle);
+            float y = xy * sinf(sliceAngle);
+
+            vec3 normal;
+            glm_vec3_normalize_to((vec3) { x, y, z }, normal);
+
+            float s = ((float)slice) / numSlices;
+            float t = ((float)stack) / numStacks;
+
+            vertices[indexVA++] = (Vertex) {
+                x, y, z,                         // Position
+                normal[0], normal[1], normal[2], // Normal
+                s, t                             // Texture Coordinates
+            };
+
+            if (stack < numStacks && slice < numSlices) {
+                indices[indexIA++] = stack * (numSlices + 1) + slice;
+                indices[indexIA++] = (stack + 1) * (numSlices + 1) + slice;
+                indices[indexIA++] = stack * (numSlices + 1) + (slice + 1);
+
+                indices[indexIA++] = stack * (numSlices + 1) + (slice + 1);
+                indices[indexIA++] = (stack + 1) * (numSlices + 1) + slice;
+                indices[indexIA++] = (stack + 1) * (numSlices + 1) + (slice + 1);
+            }
+        }
+    }
+
+    g_models[MODEL_SPHERE] = instanced_createMesh(vertices, numVertices, indices, numIndices, GL_TRIANGLES);
 }
 
 /**
@@ -51,8 +98,8 @@ static void model_initTriangle(void) {
     triangleVertices[0] =  Vertex3Tex(0.0f, 1, 0.0f, 0, 0, 1, 0.5f, 0.5f);
     triangleVertices[1] =  Vertex3Tex(-0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f);
     triangleVertices[2] =  Vertex3Tex(0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f);
-    
-    g_models[MODEL_TRIANGLE] = mesh_createMesh("Triangle", triangleVertices, 3, NULL, 0, GL_TRIANGLES);
+
+    g_models[MODEL_TRIANGLE] = instanced_createMesh(triangleVertices, 3, NULL, 0, GL_TRIANGLES);
 }
 
 /**
@@ -63,13 +110,12 @@ static void model_initLine(void) {
     lineVertices[0] = Vertex3Tex(-0.5f, 0.0f, 0.0f, 0, 0, 1, 0.0f, 0.0f);
     lineVertices[1] = Vertex3Tex( 0.5f, 0.0f, 0.0f, 0, 0, 1, 1.0f, 1.0f);
     
-    g_models[MODEL_LINE] = mesh_createMesh("Line", lineVertices, 2, NULL, 0, GL_LINES);
+    g_models[MODEL_LINE] = instanced_createMesh(lineVertices, 2, NULL, 0, GL_LINES);
 }
 
 /**
  * Creates cube mesh
  */
-// TODO: Gibts hier nicht was schnelles?
 static void model_initCube(void) {
     // 6 faces * 4 vertices per face = 24 vertices
     const float positions[24][3] = {
@@ -123,7 +169,7 @@ static void model_initCube(void) {
         indices[iIndex++] = base + 3;
     }
 
-    g_models[MODEL_CUBE] = mesh_createMesh("Cube", vertices, 24, indices, 36, GL_TRIANGLES);
+    g_models[MODEL_CUBE] = instanced_createMesh(vertices, 24, indices, 36, GL_TRIANGLES);
 }
 
 /**
@@ -168,12 +214,17 @@ void model_init(void) {
     model_initTriangle();
     model_initLine();
     model_loadTextures();
+
+    instanced_init();
+    instanced_bindAttrib(g_models[MODEL_SPHERE]);
+    instanced_bindAttrib(g_models[MODEL_LINE]);
+    instanced_bindAttrib(g_models[MODEL_TRIANGLE]);
 }
 
 void model_cleanup(void) {
     for (int i = 0; i < MODEL_MESH_COUNT; ++i) {
         if (g_models[i] != NULL) {
-            mesh_disposeMesh(&g_models[i]);
+            instanced_disposeMesh(g_models[i]);
             g_models[i] = NULL;
         }
     }
@@ -182,6 +233,8 @@ void model_cleanup(void) {
         glDeleteTextures(1, &g_textures[i]);
         g_textures[i] = 0;
     }
+
+    instanced_cleanup();
 }
 
 void model_drawTextured(ModelType model, bool texOrder1) {
@@ -190,7 +243,7 @@ void model_drawTextured(ModelType model, bool texOrder1) {
     }
 
     model_bindCubeTextures(texOrder1);
-    mesh_drawMesh(g_models[model]);
+    instanced_draw(g_models[model], false);
 }
 
 void model_drawSimple(ModelType model) {
@@ -198,6 +251,15 @@ void model_drawSimple(ModelType model) {
         return;
     }
 
-    shader_setSimpleMVP();
-    mesh_drawMesh(g_models[model]);
+    shader_setSimpleMVP(false);
+    instanced_draw(g_models[model], false);
+}
+
+void model_drawInstanced(ModelType model) {
+    if (model >= MODEL_MESH_COUNT) {
+        return;
+    }
+
+    shader_setSimpleMVP(true);
+    instanced_draw(g_models[model], true);
 }
