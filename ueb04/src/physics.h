@@ -30,10 +30,30 @@ void physics_cleanup(void);
  */
 void physics_drawSpheres(void);
 
+/**
+ * Toggles sphere wandering behavior
+ */
 void physics_toggleWander(void);
 
+/**
+ * Updates the number of particles in the simulation
+ */
 void physics_updateParticleCount(int count);
 
+/**
+ * Renders all particles
+ */
 void physics_drawParticles(void);
+
+/**
+ * Sets a new random leader particle
+ */
+void physics_setNewLeader(void);
+
+/**
+ * Moves the manual center position (for TM_CENTER mode)
+ * @param delta Movement vector
+ */
+void physics_moveCenterManual(vec3 delta);
 
 #endif // PHYSICS_H

@@ -69,7 +69,8 @@ static void renderPhysics(ProgContext ctx, InputData *input) {
         }
 
         gui_propertyFloat(ctx, "fixed dt", 0.001f, &input->physics.fixedDt, 0.1f, 0.001f, 0.001f);
-        gui_propertyFloat(ctx, "sim speed", 0.001f, &input->physics.simulationSpeed, 10.0f, 0.001f, 0.1f);
+        // Simulation speed: 0.0 to 10.0
+        gui_propertyFloat(ctx, "sim speed", 0.0f, &input->physics.simulationSpeed, 10.0f, 0.01f, 0.1f);
 
         gui_treePop(ctx);
     }
@@ -96,9 +97,13 @@ static void renderSettings(ProgContext ctx, InputData *input) {
 
         gui_checkbox(ctx, "show vectors", &input->particles.visVectors);
 
-        gui_propertyFloat(ctx, "Gaussian Const", 30.0f, &input->particles.gaussianConst, 150.0f, 0.1f, 0.05f);
+        gui_propertyFloat(ctx, "Gaussian Const", 1.0f, &input->particles.gaussianConst, 150.0f, 0.1f, 0.5f);
+
         if (input->particles.targetMode == TM_LEADER) {
             gui_propertyFloat(ctx, "LeaderKv", 2.0f, &input->particles.leaderKv, 10.0f, 0.01f, 0.05f);
+            if (gui_button(ctx, "New Random Leader")) {
+                physics_setNewLeader();
+            }
         }
 
         int count = input->particles.count;

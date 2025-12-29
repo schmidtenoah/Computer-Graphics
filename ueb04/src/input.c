@@ -8,6 +8,7 @@
 #include "input.h"
 #include "rendering.h"
 #include "shader.h"
+#include "physics.h"
 
 #define CAM_SPEED 2.0f
 #define CAM_FAST_SPEED (CAM_SPEED * 6.0f)
@@ -18,8 +19,10 @@
 #define SIMULATION_SPEED 1.0f
 #define SIMULATION_FPS 120.0f
 
-#define GAUSSIAN_CONST 50.0f
+#define GAUSSIAN_CONST 60.0f
 #define LEADER_KV 5.0f
+
+#define CENTER_MOVE_SPEED 0.2f
 
 ////////////////////////    LOCAL    ////////////////////////////
 
@@ -34,6 +37,41 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
 
     InputData *data = getInputData();
     camera_keyboardCallback(data->cam.data, key, action);
+
+    if (action != GLFW_PRESS && action != GLFW_REPEAT) {
+        return;
+    }
+
+    // Arrow keys for center movement (when in CENTER mode)
+    if (data->particles.targetMode == TM_CENTER) {
+        vec3 delta = {0, 0, 0};
+        switch (key) {
+            case GLFW_KEY_LEFT:
+                delta[0] = -CENTER_MOVE_SPEED;
+                physics_moveCenterManual(delta);
+                return;
+            case GLFW_KEY_RIGHT:
+                delta[0] = CENTER_MOVE_SPEED;
+                physics_moveCenterManual(delta);
+                return;
+            case GLFW_KEY_UP:
+                delta[2] = -CENTER_MOVE_SPEED;
+                physics_moveCenterManual(delta);
+                return;
+            case GLFW_KEY_DOWN:
+                delta[2] = CENTER_MOVE_SPEED;
+                physics_moveCenterManual(delta);
+                return;
+            case GLFW_KEY_PAGE_UP:
+                delta[1] = CENTER_MOVE_SPEED;
+                physics_moveCenterManual(delta);
+                return;
+            case GLFW_KEY_PAGE_DOWN:
+                delta[1] = -CENTER_MOVE_SPEED;
+                physics_moveCenterManual(delta);
+                return;
+        }
+    }
 
     if (action != GLFW_PRESS) {
         return;
@@ -71,6 +109,12 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
 
         case GLFW_KEY_T:
             data->rendering.texOrder1 = !data->rendering.texOrder1;
+            break;
+
+        case GLFW_KEY_L:
+            if (data->particles.targetMode == TM_LEADER) {
+                physics_setNewLeader();
+            }
             break;
 
         default:
@@ -139,6 +183,7 @@ void input_init(ProgContext ctx) {
     g_input.particles.sphereVis = SV_SPHERE;
     g_input.particles.targetMode = TM_SPHERES;
     g_input.particles.visVectors = true;
+    g_input.particles.leaderIdx = 0;
 }
 
 InputData* getInputData(void) {
