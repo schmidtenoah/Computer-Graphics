@@ -46,4 +46,11 @@ void model_drawInstanced(ModelType model);
 
 void model_drawParticleVis(void);
 
+/**
+ * Draws without setting any Shader Data instanced or not.
+ * @param model Model type to draw
+ * @param instanced If the instancing vbo should be used.
+ */
+void model_draw(ModelType model, bool instanced);
+
 #endif // MODEL_H

@@ -43,6 +43,7 @@ typedef struct {
     struct {
         bool texOrder1;
         float roomSize;
+        bool dropShadows;
     } rendering;
 
     struct {

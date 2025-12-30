@@ -17,8 +17,11 @@ uniform bool u_drawInstanced;
 uniform vec3 u_localScale;
 uniform int u_leaderIdx;
 
-flat out int vertexID;
+uniform float u_groundHeight;
+
 flat out int isLeader;
+
+const float shadowOffset = 0.01f;
 
 void main() {
     vec3 worldPos = pos;
@@ -29,6 +32,6 @@ void main() {
         isLeader = ((u_leaderIdx != -1) && (gl_InstanceID == u_leaderIdx)) ? 0 : 1;
     }
 
+    worldPos.y = u_groundHeight + shadowOffset;
     gl_Position = u_mvpMatrix * vec4(worldPos, 1.0);
-    vertexID = gl_VertexID;
 }

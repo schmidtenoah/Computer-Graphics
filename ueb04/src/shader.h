@@ -47,6 +47,8 @@ void shader_setSimpleInstanceData(vec3 scale, int leaderIdx);
 
 void shader_setParticleVisData(vec3 scale);
 
+void shader_setDropShadowData(vec3 scale, int leaderIdx, bool drawInstanced, float groundHeight);
+
 /**
  * Retrieves the Shader for drawing textured.
  * @returns the texture Shader

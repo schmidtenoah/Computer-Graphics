@@ -1,5 +1,7 @@
 #version 430 core
 
+#include "../utils.glsl"
+
 layout(location = 0) in vec3 pos;
 
 // Instance
@@ -18,15 +20,13 @@ out VS_OUT {
 } vs_out;
 
 void main() {
-    vec3 f = normalize(forward);
-    vec3 u = normalize(up);
-    vec3 r = normalize(cross(u, f));
-    u = cross(f, r);
-    mat3 rot = mat3(r, u, f);
-
-    vs_out.worldPos = rot * (pos * u_localScale) + offset;
+    vec3 upVec = up;
+    vec3 worldPos = pos;
+    transform(worldPos, forward, upVec, u_localScale, offset);
+    
+    vs_out.worldPos = worldPos;
     vs_out.acceleration = acceleration;
-    vs_out.up = u;
+    vs_out.up = upVec;
 
     gl_Position = u_mvpMatrix * vec4(vs_out.worldPos, 1.0);
 }

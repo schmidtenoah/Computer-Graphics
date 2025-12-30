@@ -22,7 +22,7 @@
 
 ////////////////////////    LOCAL    ////////////////////////////
 
-static Shader *pVecsShader, *simpleShader, *normalShader, *textureShader;
+static Shader *pVecsShader, *simpleShader, *dropShadowShader, *textureShader;
 
 struct Material;
 
@@ -68,8 +68,8 @@ static Shader* createParticleVecsShader(void) {
 void shader_cleanup(void) {
     cleanup(pVecsShader);
     cleanup(simpleShader);
-    cleanup(normalShader);
     cleanup(textureShader);
+    cleanup(dropShadowShader);
 }
 
 void shader_load(void) {
@@ -83,6 +83,16 @@ void shader_load(void) {
     if (newShader) {
         cleanup(simpleShader);
         simpleShader = newShader;
+    }
+
+    newShader = shader_createVeFrShader(
+        "drop shadow",
+        RESOURCE_PATH "shader/dropShadow/dropShadow.vert",
+        RESOURCE_PATH "shader/dropShadow/dropShadow.frag"
+    );
+    if (newShader) {
+        cleanup(dropShadowShader);
+        dropShadowShader = newShader;
     }
 
     newShader = createParticleVecsShader();
@@ -100,32 +110,11 @@ void shader_load(void) {
         cleanup(textureShader);
         textureShader = newShader;
     }
-
-    newShader = shader_createNormalsShader(FHWCG_SHADER_PATH);
-    if (newShader) {
-        cleanup(normalShader);
-        normalShader = newShader;
-
-        shader_useShader(normalShader);
-        shader_setFloat(normalShader, "u_normalLength", NORMAL_LENGTH);
-        shader_setVec3(normalShader, "u_color", &NORMAL_COLOR);
-    }
 }
 
 void shader_setColor(vec3 color) {
     shader_useShader(simpleShader);
     shader_setVec3(simpleShader, "u_color", (vec3*) color);
-}
-
-void shader_setNormals(void) {
-    shader_useShader(normalShader);
-    mat4 mat;
-    scene_getMV(mat);
-    shader_setMat4(normalShader, "u_modelViewMatrix", &mat);
-    scene_getN(mat);
-    shader_setMat4(normalShader, "u_normalMatrix", &mat);
-    scene_getP(mat);
-    shader_setMat4(normalShader, "u_projMatrix", &mat);
 }
 
 void shader_setSimpleMVP(bool drawInstanced) {
@@ -145,10 +134,24 @@ void shader_setSimpleInstanceData(vec3 scale, int leaderIdx) {
 
 void shader_setParticleVisData(vec3 scale) {
     shader_useShader(pVecsShader);
+    
     shader_setVec3(pVecsShader, "u_localScale", (vec3*) scale);
     mat4 mat;
     scene_getMVP(mat);
     shader_setMat4(pVecsShader, "u_mvpMatrix", &mat);
+}
+
+void shader_setDropShadowData(vec3 scale, int leaderIdx, bool drawInstanced, float groundHeight) {
+    shader_useShader(dropShadowShader);
+
+    shader_setVec3(dropShadowShader, "u_localScale", (vec3*) scale);
+    shader_setInt(dropShadowShader, "u_leaderIdx", leaderIdx);
+    shader_setFloat(dropShadowShader, "u_groundHeight", groundHeight);
+
+    mat4 mat;
+    scene_getMVP(mat);
+    shader_setMat4(dropShadowShader, "u_mvpMatrix", &mat);
+    shader_setBool(dropShadowShader, "u_drawInstanced", drawInstanced);
 }
 
 Shader* shader_getTextureShader(void) {

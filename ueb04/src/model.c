@@ -276,3 +276,11 @@ void model_drawInstanced(ModelType model) {
 void model_drawParticleVis(void) {
     instanced_drawParticleVis(g_models[MODEL_POINT]);
 }
+
+void model_draw(ModelType model, bool instanced) {
+    if (model >= MODEL_MESH_COUNT) {
+        return;
+    }
+
+    instanced_draw(g_models[model], instanced);
+}

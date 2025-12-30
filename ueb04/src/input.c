@@ -170,6 +170,7 @@ void input_init(ProgContext ctx) {
 
     g_input.rendering.texOrder1 = false;
     g_input.rendering.roomSize = 10.0f;
+    g_input.rendering.dropShadows = true;
 
     g_input.physics.fixedDt = 1.0f / SIMULATION_FPS;
     g_input.physics.sphereRadius = 0.5f;

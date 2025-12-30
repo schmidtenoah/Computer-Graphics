@@ -69,7 +69,6 @@ static void renderPhysics(ProgContext ctx, InputData *input) {
         }
 
         gui_propertyFloat(ctx, "fixed dt", 0.001f, &input->physics.fixedDt, 0.1f, 0.001f, 0.001f);
-        // Simulation speed: 0.0 to 10.0
         gui_propertyFloat(ctx, "sim speed", 0.0f, &input->physics.simulationSpeed, 10.0f, 0.01f, 0.1f);
 
         gui_treePop(ctx);
@@ -84,6 +83,7 @@ static void renderSettings(ProgContext ctx, InputData *input) {
         gui_layoutRowDynamic(ctx, 25, 1);
 
         gui_checkbox(ctx, "Wireframe", &input->showWireframe);
+        gui_checkbox(ctx, "Drop Shadows", &input->rendering.dropShadows);
         gui_checkbox(ctx, "Texture Order", &input->rendering.texOrder1);
         gui_propertyFloat(ctx, "Room Size", 0.1f, &input->rendering.roomSize, 25.0f, 0.1f, 0.05f);
 

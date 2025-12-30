@@ -420,6 +420,12 @@ void physics_drawParticles(void) {
         model_drawParticleVis();
     }
 
+    if (data->rendering.dropShadows) {
+        float groundHeight = -data->rendering.roomSize;
+        shader_setDropShadowData(scale, leaderIdx, true, groundHeight);
+        model_draw(model, true);
+    }
+
     glEnable(GL_CULL_FACE);
     scene_popMatrix();
     debug_popRenderScope();
