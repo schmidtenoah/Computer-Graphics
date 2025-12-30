@@ -31,7 +31,7 @@ static const char *visModeDropdown[] = {
 };
 
 static const char *targetModeDropdown[] = {
-    "Spheres", "Center", "Leader"
+    "Spheres", "Center", "Leader", "Box Center"
 };
 
 /**

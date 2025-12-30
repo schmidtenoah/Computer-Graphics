@@ -13,11 +13,11 @@
 #include "instanced.h"
 
 #define NUM_SPHERES 2
-#define SPHERE_MAX_WAIT_SEC 2.5f
-#define SPHERE_SPEED 2.0f
+#define SPHERE_MAX_WAIT_SEC 10.0f
+#define SPHERE_MIN_WAIT_SEC 2.0f
+#define SPHERE_SPEED 0.5f
 
 #define SPHERE_COLOR VEC3(0.4f, 0.5f, 1)
-#define SPHERE_COLOR_LEADER VEC3(1.0f, 0.3f, 0.3f)
 #define CENTER_SPHERE_COLOR VEC3(0.3f, 1.0f, 0.3f)
 
 #define RAND_IN_BOX(dst, boxSize) {       \
@@ -68,7 +68,7 @@ static Sphere g_spheres[NUM_SPHERES] = { 0 };
 
 static ParticleArr g_particles;
 
-/** Manual center position for TM_CENTER mode */
+/** Manual center position for TM_BOX_CENTER mode */
 static vec3 g_manualCenter = {0.0f, 0.0f, 0.0f};
 
 /**
@@ -97,7 +97,7 @@ static void updateSpheres(InputData *data) {
 
             if (glm_vec3_eqv_eps(s->currPos, s->targetPos)) {
                 s->waiting = true;
-                s->waitSec = RAND01 * SPHERE_MAX_WAIT_SEC;
+                s->waitSec = RAND(SPHERE_MIN_WAIT_SEC, SPHERE_MAX_WAIT_SEC);
             }
         }
     }
@@ -149,7 +149,17 @@ static void computeAcceleration(TargetMode mode, InputData *data, Particle *p, v
         }
 
         case TM_CENTER: {
-            // Use manual center position instead of computed center
+            vec3 center = {0, 0, 0};
+            for (int i = 0; i < g_particles.size; ++i) {
+                glm_vec3_add(center, g_particles.data[i].pos, center);
+            }
+
+            glm_vec3_scale(center, 1.0f / g_particles.size, center);
+            getTargetAcceleration(p, center, dest);
+            break;
+        }
+
+        case TM_BOX_CENTER: {
             getTargetAcceleration(p, g_manualCenter, dest);
             break;
         }
@@ -160,7 +170,7 @@ static void computeAcceleration(TargetMode mode, InputData *data, Particle *p, v
 }
 
 static void applyRoomCollision(InputData *data, Particle *p) {
-    float halfSize = 0.5f * data->rendering.roomSize;
+    float halfSize = data->rendering.roomSize;
     float margin = 0.05f * halfSize;
 
     vec3 force = { 0, 0, 0 };
@@ -277,7 +287,7 @@ void physics_init(void) {
 
         SPHERE_RANDOM_POS(s, data);
         s->waiting = false;
-        s->waitSec = 0.0f;
+        s->waitSec = RAND(SPHERE_MIN_WAIT_SEC, SPHERE_MAX_WAIT_SEC);
         s->wandering = true;
         glm_vec3_copy(VEC3X(RAND01), s->color);
         data->physics.sphereSpeed = SPHERE_SPEED;
@@ -330,7 +340,7 @@ void physics_setNewLeader(void) {
 
 void physics_moveCenterManual(vec3 delta) {
     InputData *data = getInputData();
-    float halfSize = 0.5f * data->rendering.roomSize * 0.9f;
+    float halfSize = data->rendering.roomSize * 0.9f;
 
     glm_vec3_add(g_manualCenter, delta, g_manualCenter);
 
@@ -359,7 +369,7 @@ void physics_drawSpheres(void) {
     }
 
     // Draw center sphere if in CENTER mode
-    if (data->particles.targetMode == TM_CENTER) {
+    if (data->particles.targetMode == TM_BOX_CENTER) {
         scene_pushMatrix();
 
         scene_translateV(g_manualCenter);

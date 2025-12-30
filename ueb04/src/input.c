@@ -16,7 +16,7 @@
 #define CAM_YAW -90.0f
 #define CAM_PITCH -20.0f
 
-#define SIMULATION_SPEED 1.0f
+#define SIMULATION_SPEED 3.0f
 #define SIMULATION_FPS 120.0f
 
 #define GAUSSIAN_CONST 60.0f
@@ -43,7 +43,7 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
     }
 
     // Arrow keys for center movement (when in CENTER mode)
-    if (data->particles.targetMode == TM_CENTER) {
+    if (data->particles.targetMode == TM_BOX_CENTER) {
         vec3 delta = {0, 0, 0};
         switch (key) {
             case GLFW_KEY_LEFT:

@@ -35,7 +35,7 @@ static GLuint g_textures[TEXTURE_COUNT];
 
 // Texture Idx used for the 6 sides of a cube
 static int g_cubeOrder1[] = {0, 0, 0, 1, 0, 0};
-static int g_cubeOrder2[] = {2, 2, 2, 0, 2, 2};
+static int g_cubeOrder2[] = {2, 2, 2, 1, 2, 2};
  
 /**
  * Creates sphere mesh

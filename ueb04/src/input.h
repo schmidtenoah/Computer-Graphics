@@ -15,7 +15,8 @@
 typedef enum {
     TM_SPHERES,
     TM_CENTER, 
-    TM_LEADER
+    TM_LEADER,
+    TM_BOX_CENTER
 } TargetMode;
 
 typedef enum {
