@@ -18,6 +18,7 @@ uniform vec3 u_localScale;
 uniform int u_leaderIdx;
 
 flat out int vertexID;
+flat out int instanceID;
 flat out int isLeader;
 
 void main() {
@@ -25,8 +26,10 @@ void main() {
     vec3 upVec = up;
 
     if (u_drawInstanced) {
+        // Verwende die berechnete Basis für die Rotation
         transform(worldPos, forward, upVec, u_localScale, offset);
         isLeader = ((u_leaderIdx != -1) && (gl_InstanceID == u_leaderIdx)) ? 0 : 1;
+        instanceID = gl_InstanceID;
     }
 
     gl_Position = u_mvpMatrix * vec4(worldPos, 1.0);

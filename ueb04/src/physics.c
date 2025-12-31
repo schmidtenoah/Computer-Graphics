@@ -457,3 +457,41 @@ void physics_updateParticleCount(int count) {
     physics_setNewLeader();
     instanced_resize(count);
 }
+
+void physics_getParticleCamera(vec3 outPos, vec3 outDir, vec3 outUp) {
+    InputData *data = getInputData();
+
+    if (g_particles.size == 0 || data->particles.leaderIdx < 0 ||
+        data->particles.leaderIdx >= g_particles.size) {
+        // Fallback zu Standardposition
+        glm_vec3_copy((vec3){0, 2, 5}, outPos);
+        glm_vec3_copy((vec3){0, 0, -1}, outDir);
+        glm_vec3_copy(GLM_YUP, outUp);
+        return;
+        }
+
+    Particle *leader = &g_particles.data[data->particles.leaderIdx];
+
+    // Kamera Position: leicht hinter und über dem Partikel (entgegen der forward-Richtung
+    float behindDistance = 0.5f;  // Abstand hinter dem Partikel
+    float aboveDistance = 0.3f;    // Höhe über dem Partikel
+
+    vec3 behind, above;
+
+    // Berechne Position hinter dem Partikel
+    glm_vec3_negate_to(leader->basis.forward, behind);
+    glm_vec3_scale(behind, behindDistance, behind);
+
+    // Berechne Position über dem Partikel
+    glm_vec3_scale_as(leader->basis.up, aboveDistance, above);
+
+    // Kombiniere zu finaler Kamera-Position
+    glm_vec3_add(leader->pos, behind, outPos);
+    glm_vec3_add(outPos, above, outPos);
+
+    // Kamera schaut in Bewegungsrichtung des Partikels
+    glm_vec3_copy(leader->basis.forward, outDir);
+
+    // Up-Vektor des Partikels
+    glm_vec3_copy(leader->basis.up, outUp);
+}

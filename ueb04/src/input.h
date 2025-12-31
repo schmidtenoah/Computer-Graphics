@@ -25,6 +25,11 @@ typedef enum {
     SV_TRIANGLE
 } SphereVis;
 
+typedef enum {
+    CAM_FREE,
+    CAM_PARTICLE
+} CameraMode;
+
 /** Application state containing all settings and input data */
 typedef struct {
     bool isFullscreen;
@@ -38,6 +43,12 @@ typedef struct {
         Camera *data;
         vec3 pos;
         vec3 dir;
+        CameraMode mode;
+
+        // Particle camera data
+        vec3 particlePos;
+        vec3 particleDir;
+        vec3 particleUp;
     } cam;
 
     struct {

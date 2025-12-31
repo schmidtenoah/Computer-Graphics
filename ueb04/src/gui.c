@@ -23,7 +23,9 @@ static const GuiHelpLine help[] = {
     {"Toggle Menu", "F4"},
     {"Reload Shaders", "R"},
     {"Pause", "P"},
-    {"Change Texture", "T"}
+    {"Change Texture", "T"},
+    {"Toggle Camera", "C"},
+    {"Change Leader", "L"}
 };
 
 static const char *visModeDropdown[] = {
@@ -132,6 +134,9 @@ static void renderSettings(ProgContext ctx, InputData *input) {
 /**
  * Renders general controls
  */
+/**
+ * Renders general controls
+ */
 static void renderGeneral(ProgContext ctx, InputData *input) {
     if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MINIMIZED)) {
 
@@ -148,6 +153,12 @@ static void renderGeneral(ProgContext ctx, InputData *input) {
         if (gui_button(ctx, input->paused ? "Unpause" : "Pause")) {
             input->paused = !input->paused;
         }
+
+        // Camera Mode Anzeige
+        gui_layoutRowDynamic(ctx, 20, 2);
+        gui_label(ctx, "Camera:", NK_TEXT_LEFT);
+        const char* camText = (input->cam.mode == CAM_FREE) ? "Free (C)" : "Particle (C)";
+        gui_label(ctx, camText, NK_TEXT_RIGHT);
 
         gui_treePop(ctx);
     }

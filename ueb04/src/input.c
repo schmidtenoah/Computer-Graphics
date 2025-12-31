@@ -117,6 +117,15 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
             }
             break;
 
+        case GLFW_KEY_C:
+            // Toggle zwischen Free Camera und Particle Camera
+            if (data->cam.mode == CAM_FREE) {
+                data->cam.mode = CAM_PARTICLE;
+            } else {
+                data->cam.mode = CAM_FREE;
+            }
+            break;
+
         default:
             break;
     }
@@ -167,6 +176,13 @@ void input_init(ProgContext ctx) {
     );
     camera_getPosition(g_input.cam.data, g_input.cam.pos);
     camera_getFront(g_input.cam.data, g_input.cam.dir);
+    // Start w/ free cam
+    g_input.cam.mode = CAM_FREE;
+
+    // Initialisiere Particle Camera
+    glm_vec3_copy(startPos, g_input.cam.particlePos);
+    glm_vec3_copy((vec3){0, 0, -1}, g_input.cam.particleDir);
+    glm_vec3_copy(GLM_YUP, g_input.cam.particleUp);
 
     g_input.rendering.texOrder1 = false;
     g_input.rendering.roomSize = 10.0f;

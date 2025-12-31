@@ -56,4 +56,13 @@ void physics_setNewLeader(void);
  */
 void physics_moveCenterManual(vec3 delta);
 
+
+/**
+ * Updates the particle camera position and direction
+ * @param outPos Output position vector
+ * @param outDir Output direction vector
+ * @param outUp Output up vector
+ */
+void physics_getParticleCamera(vec3 outPos, vec3 outDir, vec3 outUp);
+
 #endif // PHYSICS_H
