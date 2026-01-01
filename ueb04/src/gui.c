@@ -109,7 +109,7 @@ static void renderSettings(ProgContext ctx, InputData *input) {
         }
 
         int count = input->particles.count;
-        gui_propertyInt(ctx, "particles", 0, &count, 10000, 1, 0.1f);
+        gui_propertyInt(ctx, "particles", 1, &count, 5000, 1, 0.1f);
         if (count != input->particles.count) {
             physics_updateParticleCount(count);
         }

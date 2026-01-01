@@ -5,7 +5,6 @@
 layout(location = 0) in vec3 pos;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 texCoords;
-layout(location = 3) in int id;
 
 // Instance
 layout(location = 4) in vec3 offset;
@@ -17,9 +16,10 @@ uniform mat4 u_mvpMatrix;
 uniform bool u_drawInstanced;
 uniform vec3 u_localScale;
 uniform int u_leaderIdx;
+uniform vec3 u_color;
 
 flat out int isLeader;
-flat out int vertID;
+out vec3 vColor;
 
 void main() {
     vec3 worldPos = pos;
@@ -31,5 +31,5 @@ void main() {
     }
 
     gl_Position = u_mvpMatrix * vec4(worldPos, 1.0);
-    vertID = id;
+    vColor = (gl_VertexID % 3 == 0) ? u_color : vec3(1.0) - u_color;
 }

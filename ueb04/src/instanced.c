@@ -55,10 +55,6 @@ CGMesh* instanced_createMesh(
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(CGVertex), (void*)offsetof(CGVertex, texCoords));
 
-    // Id
-    glEnableVertexAttribArray(3);
-    glVertexAttribIPointer(3, 1, GL_INT, sizeof(CGVertex), (void*)offsetof(CGVertex, id));
-
     m->numVertices = numVerts;
     m->vao = vao;
     m->vbo = vbo;

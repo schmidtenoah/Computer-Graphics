@@ -68,8 +68,7 @@ static void model_initSphere(void) {
             vertices[indexVA++] = (CGVertex) {
                 .position = {x, y, z},
                 .normal = {normal[0], normal[1], normal[2]},
-                .texCoords = {s, t},
-                .id = stack + slice
+                .texCoords = {s, t}
             };
 
             if (stack < numStacks && slice < numSlices) {
@@ -90,7 +89,7 @@ static void model_initSphere(void) {
 }
 
 static void model_initPoint(void) {
-    CGVertex point = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+    CGVertex point = {0, 0, 0, 0, 0, 0, 0, 0};
     g_models[MODEL_POINT] = instanced_createMesh(&point, 1, NULL, 0, GL_POINTS);
 }
 
@@ -99,9 +98,9 @@ static void model_initPoint(void) {
  */
 static void model_initTriangle(void) {
     CGVertex triangleVertices[3] = {
-        {0.0f, 1, 0.0f, 0, 0, 1, 0.5f, 0.5f,        .id = 0},
-        {-0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f,   .id = 1},
-        {0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f,    .id = 2}
+        {0.0f, 1, 0.0f, 0, 0, 1, 0.5f, 0.5f},
+        {-0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f},
+        {0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f}
     };
 
     g_models[MODEL_TRIANGLE] = instanced_createMesh(triangleVertices, 3, NULL, 0, GL_TRIANGLES);
@@ -112,8 +111,8 @@ static void model_initTriangle(void) {
  */
 static void model_initLine(void) {
     CGVertex lineVertices[2] = {
-        {0.0f, -0.5f, 0.0f, 0, 0, 1, 0.0f, 0.0f, .id = 0},
-        {0.0f,  0.5f, 0.0f, 0, 0, 1, 1.0f, 1.0f, .id = 1}
+        {0.0f, -0.5f, 0.0f, 0, 0, 1, 0.0f, 0.0f},
+        {0.0f,  0.5f, 0.0f, 0, 0, 1, 1.0f, 1.0f}
     };
     
     g_models[MODEL_LINE] = instanced_createMesh(lineVertices, 2, NULL, 0, GL_LINES);
@@ -162,8 +161,7 @@ static void model_initCube(void) {
                 positions[face * 4 + vert][1],
                 positions[face * 4 + vert][2],
                 normals[face][0], normals[face][1], normals[face][2],
-                texCoords[vert][0], texCoords[vert][1], 
-                .id = face + vert
+                texCoords[vert][0], texCoords[vert][1]
             };
         }
 

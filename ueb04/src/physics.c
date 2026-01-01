@@ -17,8 +17,10 @@
 #define SPHERE_MIN_WAIT_SEC 2.0f
 #define SPHERE_SPEED 0.5f
 
-#define SPHERE_COLOR VEC3(0.4f, 0.5f, 1)
+#define SPHERE_COLOR VEC3(0.4f, 0, 1)
 #define CENTER_SPHERE_COLOR VEC3(0.3f, 1.0f, 0.3f)
+
+#define EPS 1e-6f
 
 #define RAND_IN_BOX(dst, boxSize) {       \
     vec3 pos = {                          \
@@ -198,25 +200,48 @@ static void applyRoomCollision(InputData *data, Particle *p) {
 
 static void updateBasis(Particle *p) {
     vec3 upRef = {0, 1, 0};
-    if (glm_vec3_norm2(p->velocity) < 1e-6f) {
+
+    // If no velocity we have no forward -> return 
+    if (glm_vec3_norm2(p->velocity) < EPS) {
         return;
     }
 
+    vec3 prevUp;
+    glm_vec3_copy(p->basis.up, prevUp);
+
+    // velocity -> forward
     glm_vec3_normalize_to(p->velocity, p->basis.forward);
 
     vec3 tmpRight;
-    if (glm_vec3_norm2(p->acceleration) < 1e-6f) {
-        glm_vec3_cross(p->basis.forward, upRef, tmpRight);
-    } else {
+    bool valid = false;
+
+    if (glm_vec3_norm2(p->acceleration) >= EPS) {
         glm_vec3_cross(p->basis.forward, p->acceleration, tmpRight);
-        if (glm_vec3_norm2(tmpRight) < 1e-6f) {
+        if (glm_vec3_norm2(tmpRight) >= EPS) {
+            valid = true;
+        }
+    }
+
+    // Fallback to previous up or world up
+    if (!valid) {
+        glm_vec3_cross(p->basis.forward, prevUp, tmpRight);
+        if (glm_vec3_norm2(tmpRight) < EPS) {
             glm_vec3_cross(p->basis.forward, upRef, tmpRight);
         }
     }
+
     glm_normalize_to(tmpRight, p->basis.right);
 
+    // Recompute up
     glm_vec3_cross(p->basis.right, p->basis.forward, p->basis.up);
     glm_vec3_normalize(p->basis.up);
+
+    // Enforce temporal continuity (up can't suddenly flip)
+    // (r, u, f) == (-r, -u, f)
+    if (glm_vec3_dot(p->basis.up, prevUp) < 0.0f) {
+        glm_vec3_scale(p->basis.up, -1.0f, p->basis.up);
+        glm_vec3_scale(p->basis.right, -1.0f, p->basis.right);
+    }
 }
 
 static void updateParticleInstances(void) {
@@ -400,7 +425,7 @@ void physics_drawParticles(void) {
         case SV_TRIANGLE:
             glDisable(GL_CULL_FACE);
             model = MODEL_TRIANGLE;
-            glm_vec3_copy(VEC3(0.3f, 0.05f, 1.0f), scale);
+            glm_vec3_copy(VEC3(0.1f, 0.05f, 1.0f), scale);
             break;
         case SV_LINE:
         default:
