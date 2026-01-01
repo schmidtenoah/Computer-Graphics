@@ -49,6 +49,8 @@ typedef struct {
         vec3 particlePos;
         vec3 particleDir;
         vec3 particleUp;
+        float behindDistance;
+        float aboveDistance; 
     } cam;
 
     struct {

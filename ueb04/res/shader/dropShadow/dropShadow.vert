@@ -7,10 +7,10 @@ layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 texCoords;
 
 // Instance
-layout(location = 3) in vec3 offset;
-layout(location = 4) in vec3 acceleration;
-layout(location = 5) in vec3 up;
-layout(location = 6) in vec3 forward;
+layout(location = 4) in vec3 offset;
+layout(location = 5) in vec3 acceleration;
+layout(location = 6) in vec3 up;
+layout(location = 7) in vec3 forward;
 
 uniform mat4 u_mvpMatrix;
 uniform bool u_drawInstanced;

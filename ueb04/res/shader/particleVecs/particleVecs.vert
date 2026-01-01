@@ -5,10 +5,10 @@
 layout(location = 0) in vec3 pos;
 
 // Instance
-layout(location = 3) in vec3 offset;
-layout(location = 4) in vec3 acceleration;
-layout(location = 5) in vec3 up;
-layout(location = 6) in vec3 forward;
+layout(location = 4) in vec3 offset;
+layout(location = 5) in vec3 acceleration;
+layout(location = 6) in vec3 up;
+layout(location = 7) in vec3 forward;
 
 uniform mat4 u_mvpMatrix;
 uniform vec3 u_localScale;

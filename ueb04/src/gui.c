@@ -154,11 +154,18 @@ static void renderGeneral(ProgContext ctx, InputData *input) {
             input->paused = !input->paused;
         }
 
-        // Camera Mode Anzeige
-        gui_layoutRowDynamic(ctx, 20, 2);
-        gui_label(ctx, "Camera:", NK_TEXT_LEFT);
-        const char* camText = (input->cam.mode == CAM_FREE) ? "Free (C)" : "Particle (C)";
-        gui_label(ctx, camText, NK_TEXT_RIGHT);
+        if (gui_treePush(ctx, NK_TREE_TAB, "Camera", NK_MAXIMIZED)) {
+            gui_layoutRowDynamic(ctx, 20, 2);
+            gui_label(ctx, "Camera:", NK_TEXT_LEFT);
+            const char* camText = (input->cam.mode == CAM_FREE) ? "Free (C)" : "Particle (C)";
+            gui_label(ctx, camText, NK_TEXT_RIGHT);
+            gui_layoutRowDynamic(ctx, 20, 1);
+
+            gui_propertyFloat(ctx, "above dist", -2.0f, &input->cam.aboveDistance, 2.0f, 0.01f, 0.01f);
+            gui_propertyFloat(ctx, "behind dist", -2.0f, &input->cam.behindDistance, 2.0f, 0.01f, 0.01f);
+
+            gui_treePop(ctx);
+        }
 
         gui_treePop(ctx);
     }

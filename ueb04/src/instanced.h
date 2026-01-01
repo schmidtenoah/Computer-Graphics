@@ -13,8 +13,15 @@
 
 typedef struct CGMesh CGMesh;
 
+typedef struct {
+    GLfloat position[3];
+    GLfloat normal[3];
+    GLfloat texCoords[2];
+    GLint id;
+} CGVertex;
+
 CGMesh* instanced_createMesh(
-    const Vertex *vertices, const int numVerts, 
+    const CGVertex *vertices, const int numVerts, 
     const GLuint* indices, const int numInd, 
     GLenum mode
 );

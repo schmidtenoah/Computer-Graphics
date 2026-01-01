@@ -30,7 +30,7 @@ static struct {
 ////////////////////////    PUBLIC    ////////////////////////////
 
 CGMesh* instanced_createMesh(
-    const Vertex *vertices, const int numVerts, 
+    const CGVertex *vertices, const int numVerts, 
     const GLuint* indices, const int numInd, 
     GLenum mode
 ) {
@@ -41,19 +41,23 @@ CGMesh* instanced_createMesh(
     glGenBuffers(1, &vbo);
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * numVerts, vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(CGVertex) * numVerts, vertices, GL_DYNAMIC_DRAW);
 
     // Position
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CGVertex), (void*)offsetof(CGVertex, position));
 
     // Normal
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(CGVertex), (void*)offsetof(CGVertex, normal));
 
     // Tex Coords
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(CGVertex), (void*)offsetof(CGVertex, texCoords));
+
+    // Id
+    glEnableVertexAttribArray(3);
+    glVertexAttribIPointer(3, 1, GL_INT, sizeof(CGVertex), (void*)offsetof(CGVertex, id));
 
     m->numVertices = numVerts;
     m->vao = vao;
@@ -136,36 +140,36 @@ void instanced_bindAttrib(CGMesh *m) {
     glBindBuffer(GL_ARRAY_BUFFER, g_vbo.buffer);
 
     // Offset Position
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(
-        3, 3, GL_FLOAT, GL_FALSE, sizeof(ParticleInstance),
-        (void*)offsetof(ParticleInstance, pos)
-    );
-    glVertexAttribDivisor(3, 1);
-
-    // Acceleration
     glEnableVertexAttribArray(4);
     glVertexAttribPointer(
         4, 3, GL_FLOAT, GL_FALSE, sizeof(ParticleInstance),
-        (void*)offsetof(ParticleInstance, acceleration)
+        (void*)offsetof(ParticleInstance, pos)
     );
     glVertexAttribDivisor(4, 1);
 
-    // Up
+    // Acceleration
     glEnableVertexAttribArray(5);
     glVertexAttribPointer(
         5, 3, GL_FLOAT, GL_FALSE, sizeof(ParticleInstance),
-        (void*)offsetof(ParticleInstance, up)
+        (void*)offsetof(ParticleInstance, acceleration)
     );
     glVertexAttribDivisor(5, 1);
 
-    // Forward
+    // Up
     glEnableVertexAttribArray(6);
     glVertexAttribPointer(
         6, 3, GL_FLOAT, GL_FALSE, sizeof(ParticleInstance),
-        (void*)offsetof(ParticleInstance, forward)
+        (void*)offsetof(ParticleInstance, up)
     );
     glVertexAttribDivisor(6, 1);
+
+    // Forward
+    glEnableVertexAttribArray(7);
+    glVertexAttribPointer(
+        7, 3, GL_FLOAT, GL_FALSE, sizeof(ParticleInstance),
+        (void*)offsetof(ParticleInstance, forward)
+    );
+    glVertexAttribDivisor(7, 1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);

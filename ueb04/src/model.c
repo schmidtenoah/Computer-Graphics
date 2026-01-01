@@ -14,7 +14,7 @@
 #define SPHERE_NUM_SLICES 20
 #define SPHERE_NUM_STACKS 20
 
-#define TEXTURE_COUNT 7
+#define TEXTURE_COUNT 3
 
 #define TEXTURE_PATH RESOURCE_PATH "textures/"
 #define TEX0 TEXTURE_PATH "tile.png"
@@ -22,10 +22,6 @@
 
 #define SKYBOX_PATH TEXTURE_PATH "gloomy_skybox/"
 #define TEX2 SKYBOX_PATH "gloomy_up.png" 
-#define TEX3 SKYBOX_PATH "gloomy_dn.png" 
-#define TEX4 SKYBOX_PATH "gloomy_rt.png" 
-#define TEX5 SKYBOX_PATH "gloomy_lf.png" 
-#define TEX6 SKYBOX_PATH "gloomy_ft.png"
 
 ////////////////////////    LOCAL    ////////////////////////////
 
@@ -47,7 +43,7 @@ static void model_initSphere(void) {
     GLuint numVertices = (numSlices + 1) * (numStacks + 1);
     GLuint numIndices = numSlices * numStacks * 6;
 
-    Vertex* vertices = malloc(sizeof(Vertex) * numVertices);
+    CGVertex* vertices = malloc(sizeof(CGVertex) * numVertices);
     GLuint* indices = malloc(sizeof(GLuint) * numIndices);
 
     int indexVA = 0;
@@ -69,10 +65,11 @@ static void model_initSphere(void) {
             float s = ((float)slice) / numSlices;
             float t = ((float)stack) / numStacks;
 
-            vertices[indexVA++] = (Vertex) {
-                x, y, z,                         // Position
-                normal[0], normal[1], normal[2], // Normal
-                s, t                             // Texture Coordinates
+            vertices[indexVA++] = (CGVertex) {
+                .position = {x, y, z},
+                .normal = {normal[0], normal[1], normal[2]},
+                .texCoords = {s, t},
+                .id = stack + slice
             };
 
             if (stack < numStacks && slice < numSlices) {
@@ -93,7 +90,7 @@ static void model_initSphere(void) {
 }
 
 static void model_initPoint(void) {
-    Vertex point = {0, 0, 0, 0, 0, 0, 0, 0};
+    CGVertex point = {0, 0, 0, 0, 0, 0, 0, 0, 0};
     g_models[MODEL_POINT] = instanced_createMesh(&point, 1, NULL, 0, GL_POINTS);
 }
 
@@ -101,10 +98,11 @@ static void model_initPoint(void) {
  * Creates Triangle mesh
  */
 static void model_initTriangle(void) {
-    Vertex triangleVertices[3];
-    triangleVertices[0] =  Vertex3Tex(0.0f, 1, 0.0f, 0, 0, 1, 0.5f, 0.5f);
-    triangleVertices[1] =  Vertex3Tex(-0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f);
-    triangleVertices[2] =  Vertex3Tex(0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f);
+    CGVertex triangleVertices[3] = {
+        {0.0f, 1, 0.0f, 0, 0, 1, 0.5f, 0.5f,        .id = 0},
+        {-0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f,   .id = 1},
+        {0.5f, -0.5f, 0.0f, 0, 0, 1, 0.5f, 0.5f,    .id = 2}
+    };
 
     g_models[MODEL_TRIANGLE] = instanced_createMesh(triangleVertices, 3, NULL, 0, GL_TRIANGLES);
 }
@@ -113,9 +111,10 @@ static void model_initTriangle(void) {
  * Creates Line mesh
  */
 static void model_initLine(void) {
-    Vertex lineVertices[2];
-    lineVertices[0] = Vertex3Tex(0.0f, -0.5f, 0.0f, 0, 0, 1, 0.0f, 0.0f);
-    lineVertices[1] = Vertex3Tex(0.0f,  0.5f, 0.0f, 0, 0, 1, 1.0f, 1.0f);
+    CGVertex lineVertices[2] = {
+        {0.0f, -0.5f, 0.0f, 0, 0, 1, 0.0f, 0.0f, .id = 0},
+        {0.0f,  0.5f, 0.0f, 0, 0, 1, 1.0f, 1.0f, .id = 1}
+    };
     
     g_models[MODEL_LINE] = instanced_createMesh(lineVertices, 2, NULL, 0, GL_LINES);
 }
@@ -150,7 +149,7 @@ static void model_initCube(void) {
         {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}
     };
 
-    Vertex vertices[24];
+    CGVertex vertices[24];
     GLuint indices[36];
 
     int vIndex = 0;
@@ -158,12 +157,13 @@ static void model_initCube(void) {
 
     for (int face = 0; face < 6; face++) {
         for (int vert = 0; vert < 4; vert++) {
-            vertices[vIndex++] = (Vertex){
+            vertices[vIndex++] = (CGVertex){
                 positions[face * 4 + vert][0],
                 positions[face * 4 + vert][1],
                 positions[face * 4 + vert][2],
                 normals[face][0], normals[face][1], normals[face][2],
-                texCoords[vert][0], texCoords[vert][1]
+                texCoords[vert][0], texCoords[vert][1], 
+                .id = face + vert
             };
         }
 
@@ -207,10 +207,6 @@ static void model_loadTextures(void) {
     g_textures[0] = texture_loadTexture(TEX0, GL_REPEAT);
     g_textures[1] = texture_loadTexture(TEX1, GL_REPEAT);
     g_textures[2] = texture_loadTexture(TEX2, GL_REPEAT);
-    g_textures[3] = texture_loadTexture(TEX3, GL_REPEAT);
-    g_textures[4] = texture_loadTexture(TEX4, GL_REPEAT);
-    g_textures[5] = texture_loadTexture(TEX5, GL_REPEAT);
-    g_textures[6] = texture_loadTexture(TEX6, GL_REPEAT);
 }
 
 ////////////////////////    PUBLIC    ////////////////////////////

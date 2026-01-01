@@ -15,6 +15,8 @@
 #define CAM_SENSITIVITY 0.1f
 #define CAM_YAW -90.0f
 #define CAM_PITCH -20.0f
+#define CAM_ABOVE_DISTANCE 0.4f
+#define CAM_BEHIND_DISTANCE 1.4f
 
 #define SIMULATION_SPEED 3.0f
 #define SIMULATION_FPS 120.0f
@@ -176,8 +178,9 @@ void input_init(ProgContext ctx) {
     );
     camera_getPosition(g_input.cam.data, g_input.cam.pos);
     camera_getFront(g_input.cam.data, g_input.cam.dir);
-    // Start w/ free cam
     g_input.cam.mode = CAM_FREE;
+    g_input.cam.aboveDistance = CAM_ABOVE_DISTANCE;
+    g_input.cam.behindDistance = CAM_BEHIND_DISTANCE;
 
     // Initialisiere Particle Camera
     glm_vec3_copy(startPos, g_input.cam.particlePos);

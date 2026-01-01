@@ -27,27 +27,22 @@ static RenderingData g_renderingData;
 /**
  * Updates camera view matrix
  */
-/**
- * Updates camera view matrix
- */
 static void updateCamera(InputData *data) {
     if (data->cam.mode == CAM_FREE) {
-        // Normale freie Kamera
         camera_getPosition(data->cam.data, data->cam.pos);
         camera_getFront(data->cam.data, data->cam.dir);
         scene_look(data->cam.pos, data->cam.dir, GLM_YUP);
-    } else {
-        // Partikel-Kamera
+    } 
+    else {
         physics_getParticleCamera(
             data->cam.particlePos,
             data->cam.particleDir,
             data->cam.particleUp
         );
 
-        // Berechne Look-At Position (Position + Direction)
+        // Look-At Position (Position + Direction)
         vec3 lookAt;
         glm_vec3_add(data->cam.particlePos, data->cam.particleDir, lookAt);
-
         scene_lookAt(data->cam.particlePos, lookAt, data->cam.particleUp);
     }
 }
