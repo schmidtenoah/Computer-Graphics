@@ -32,7 +32,12 @@
 static InputData g_input = {0};
 
 /**
- * Keyboard callback
+ * Keyboard event callback.
+ * Handles key presses for camera movement, toggles, and center control.
+ * @param ctx Program context.
+ * @param key GLFW key code.
+ * @param action GLFW action (press, release, repeat).
+ * @param mods Modifier key flags.
  */
 static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
     NK_UNUSED(mods);
@@ -134,7 +139,10 @@ static void input_keyEvent(ProgContext ctx, int key, int action, int mods) {
 }
 
 /**
- * Framebuffer resize callback
+ * Framebuffer resize event callback.
+ * @param ctx Program context.
+ * @param width New framebuffer width.
+ * @param height New framebuffer height.
  */
 static void input_frameBufferSizeEvent(ProgContext ctx, int width, int height) {
     NK_UNUSED(ctx);
@@ -142,7 +150,11 @@ static void input_frameBufferSizeEvent(ProgContext ctx, int width, int height) {
 }
 
 /**
- * Mouse button callback
+ * Mouse button event callback.
+ * @param ctx Program context.
+ * @param button Mouse button code.
+ * @param action Press or release action.
+ * @param mods Modifier key flags.
  */
 static void input_mouseButtonEvent(ProgContext ctx, int button, int action, int mods) {
     NK_UNUSED(mods);
@@ -153,7 +165,10 @@ static void input_mouseButtonEvent(ProgContext ctx, int button, int action, int 
 }
 
 /**
- * Mouse movement callback
+ * Mouse movement event callback.
+ * @param ctx Program context.
+ * @param x Mouse X position.
+ * @param y Mouse Y position.
  */
 static void input_mouseMoveEvent(ProgContext ctx, double x, double y) {
     InputData *data = getInputData();

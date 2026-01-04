@@ -12,6 +12,9 @@
 
 #define START_NUM_PARTICLES 100
 
+/**
+ * Target mode for particles - determines what particles move toward.
+ */
 typedef enum {
     TM_SPHERES,
     TM_CENTER, 
@@ -19,12 +22,18 @@ typedef enum {
     TM_BOX_CENTER
 } TargetMode;
 
+/**
+ * Visual representation mode for particles.
+ */
 typedef enum {
     SV_SPHERE, 
     SV_LINE, 
     SV_TRIANGLE
 } SphereVis;
 
+/**
+ * Camera mode - either free or following lead particle.
+ */
 typedef enum {
     CAM_FREE,
     CAM_PARTICLE

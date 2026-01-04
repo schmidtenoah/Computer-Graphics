@@ -40,18 +40,35 @@ void shader_setNormals(void);
 
 /**
  * Sets the current Stack MVP-Matrix for the Simple-Shader.
+ * @param drawInstanced Whether instanced drawing is enabled.
  */
 void shader_setSimpleMVP(bool drawInstanced);
 
+/**
+ * Sets instance-specific data for the simple shader.
+ * @param scale Local scale vector for instances.
+ * @param leaderIdx Index of the leader particle (-1 if none).
+ */
 void shader_setSimpleInstanceData(vec3 scale, int leaderIdx);
 
+/**
+ * Sets visualization data for particle vectors.
+ * @param scale Local scale vector for particle visualization.
+ */
 void shader_setParticleVisData(vec3 scale);
 
+/**
+ * Sets drop shadow rendering parameters.
+ * @param scale Local scale vector for instances.
+ * @param leaderIdx Index of the leader particle (-1 if none).
+ * @param drawInstanced Whether instanced drawing is enabled.
+ * @param groundHeight Height of the ground plane for shadow projection.
+ */
 void shader_setDropShadowData(vec3 scale, int leaderIdx, bool drawInstanced, float groundHeight);
 
 /**
- * Retrieves the Shader for drawing textured.
- * @returns the texture Shader
+ * Retrieves the Shader for drawing textured models.
+ * @return Pointer to the texture shader.
  */
 Shader* shader_getTextureShader(void);
 

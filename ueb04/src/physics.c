@@ -22,6 +22,11 @@
 
 #define EPS 1e-6f
 
+/**
+ * Generates a random position within a box.
+ * @param dst Destination vector.
+ * @param boxSize Half-extent of the box.
+ */
 #define RAND_IN_BOX(dst, boxSize) {       \
     vec3 pos = {                          \
         (RAND01 - 0.5f) * 1.9f,           \
@@ -31,14 +36,23 @@
     glm_vec3_scale(pos, boxSize, dst);    \
 }
 
+/**
+ * Generates a random normalized direction vector.
+ * @param dst Destination vector.
+ */
 #define RAND_DIR(dst) {                                     \
     vec3 dir = { RAND(-1, 1), RAND(-1, 1), RAND(-1, 1) };   \
     glm_vec3_normalize_to(dir, dst);                        \
 }
 
+/**
+ * Sets a random position for a sphere within the room.
+ */
 #define SPHERE_RANDOM_POS(sphere, data) RAND_IN_BOX(sphere->targetPos, data->rendering.roomSize)
 
-/** Sphere data structure */
+/**
+ * Sphere data structure for wandering spheres.
+ */
 typedef struct {
     vec3 currPos;
     vec3 targetPos;
@@ -68,13 +82,16 @@ DEFINE_ARRAY_TYPE(Particle, ParticleArr);
 /** Global sphere array */
 static Sphere g_spheres[NUM_SPHERES] = { 0 };
 
+/** Global particle array */
 static ParticleArr g_particles;
 
 /** Manual center position for TM_BOX_CENTER mode */
 static vec3 g_manualCenter = {0.0f, 0.0f, 0.0f};
 
 /**
- * Updates all spheres
+ * Updates all wandering spheres.
+ * Handles movement toward target and wait states.
+ * @param data Input state containing physics parameters.
  */
 static void updateSpheres(InputData *data) {
     float dt = data->physics.fixedDt;
@@ -105,6 +122,12 @@ static void updateSpheres(InputData *data) {
     }
 }
 
+/**
+ * Computes acceleration toward a target with distance-based scaling.
+ * @param p Particle to compute acceleration for.
+ * @param target Target position.
+ * @param dest Output acceleration vector.
+ */
 static void getTargetAcceleration(Particle *p, vec3 target, vec3 dest) {
     vec3 diff;
     glm_vec3_sub(target, p->pos, diff);
@@ -121,6 +144,13 @@ static void getTargetAcceleration(Particle *p, vec3 target, vec3 dest) {
     glm_vec3_scale(dest, p->kWeak, dest);
 }
 
+/**
+ * Computes acceleration for a particle based on target mode.
+ * @param mode Current target mode.
+ * @param data Input state.
+ * @param p Particle to compute acceleration for.
+ * @param dest Output acceleration vector.
+ */
 static void computeAcceleration(TargetMode mode, InputData *data, Particle *p, vec3 dest) {
     glm_vec3_zero(dest);
 
@@ -171,6 +201,12 @@ static void computeAcceleration(TargetMode mode, InputData *data, Particle *p, v
     }
 }
 
+/**
+ * Applies soft collision forces at room boundaries.
+ * Uses a margin zone near walls to gradually push particles inward.
+ * @param data Input state containing room size and force parameters.
+ * @param p Particle to apply collision to.
+ */
 static void applyRoomCollision(InputData *data, Particle *p) {
     float halfSize = data->rendering.roomSize;
     float margin = 0.05f * halfSize;
@@ -198,6 +234,11 @@ static void applyRoomCollision(InputData *data, Particle *p) {
     glm_vec3_add(force, p->velocity, p->velocity);
 }
 
+/**
+ * Updates particle's local coordinate basis based on velocity and acceleration.
+ * Maintains temporal continuity to prevent sudden flips.
+ * @param p Particle to update basis for.
+ */
 static void updateBasis(Particle *p) {
     vec3 upRef = {0, 1, 0};
 
@@ -244,6 +285,10 @@ static void updateBasis(Particle *p) {
     }
 }
 
+/**
+ * Updates instance buffer with current particle data.
+ * Copies position, acceleration, and basis vectors to GPU.
+ */
 static void updateParticleInstances(void) {
     vec3 *pos          = malloc(g_particles.size * sizeof(vec3));
     vec3 *acceleration = malloc(g_particles.size * sizeof(vec3));
@@ -264,6 +309,12 @@ static void updateParticleInstances(void) {
     free(up);
     free(forward);
 }
+
+/**
+ * Updates all particles using Euler integration.
+ * Handles acceleration, velocity, position updates and collision.
+ * @param data Input state containing simulation parameters.
+ */
 
 static void updateParticles(InputData *data) {
     float dt = data->physics.fixedDt;

@@ -76,6 +76,13 @@ static inline void NAME##_popBack(NAME *arr) {                                 \
     }                                                                          \
 }                                                                              \
 
+/**
+ * Moves curr towards target at the given speed.
+ * If the distance is less / equal speed sets curr to target.
+ * @param curr Current position, modified in place.
+ * @param target Target position.
+ * @param speed Movement speed per call.
+ */
 void utils_moveTowards(vec3 curr, vec3 target, float speed);
 
 #endif // UTILS_H

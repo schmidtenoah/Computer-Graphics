@@ -28,16 +28,20 @@ static const GuiHelpLine help[] = {
     {"Change Leader", "L"}
 };
 
+/** Dropdown options for particle visualization mode */
 static const char *visModeDropdown[] = {
     "Sphere", "Line", "Triangle"
 };
 
+/** Dropdown options for particle target mode */
 static const char *targetModeDropdown[] = {
     "Spheres", "Center", "Leader", "Box Center"
 };
 
 /**
- * Renders help overlay
+ * Renders the help overlay showing keybindings.
+ * @param ctx Program context.
+ * @param input Input state containing visibility flag.
  */
 static void gui_renderHelp(ProgContext ctx, InputData *input) {
     if (!input->showHelp) {
@@ -55,7 +59,9 @@ static void gui_renderHelp(ProgContext ctx, InputData *input) {
 }
 
 /**
- * Renders physics settings
+ * Renders physics settings in the menu.
+ * @param ctx Program context.
+ * @param input Input state containing physics parameters.
  */
 static void renderPhysics(ProgContext ctx, InputData *input) {
     if (gui_treePush(ctx, NK_TREE_TAB, "Physics", NK_MINIMIZED)) {
@@ -78,7 +84,9 @@ static void renderPhysics(ProgContext ctx, InputData *input) {
 }
 
 /**
- * Renders rendering settings
+ * Renders rendering and particle settings in the menu.
+ * @param ctx Program context.
+ * @param input Input state containing rendering parameters.
  */
 static void renderSettings(ProgContext ctx, InputData *input) {
     if (gui_treePush(ctx, NK_TREE_TAB, "Rendering", NK_MINIMIZED)) {
@@ -132,10 +140,9 @@ static void renderSettings(ProgContext ctx, InputData *input) {
 }
 
 /**
- * Renders general controls
- */
-/**
- * Renders general controls
+ * Renders general controls in the menu.
+ * @param ctx Program context.
+ * @param input Input state containing general settings.
  */
 static void renderGeneral(ProgContext ctx, InputData *input) {
     if (gui_treePush(ctx, NK_TREE_TAB, "General", NK_MINIMIZED)) {
@@ -172,7 +179,9 @@ static void renderGeneral(ProgContext ctx, InputData *input) {
 }
 
 /**
- * Renders main menu
+ * Renders the main settings menu.
+ * @param ctx Program context.
+ * @param input Input state containing all settings.
  */
 static void gui_renderMenu(ProgContext ctx, InputData *input) {
     if (!input->showMenu) {

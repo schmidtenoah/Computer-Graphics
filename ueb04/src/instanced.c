@@ -2,12 +2,18 @@
 #include <fhwcg/fhwcg.h>
 #include "input.h"
 
+/**
+ * Mesh structure containing OpenGL buffer objects.
+ */
 struct CGMesh {
     GLuint vao, vbo, ebo;
     GLsizei numVertices, numIndices;
     GLenum mode; 
 };
 
+/**
+ * Per-instance data structure for particle rendering.
+ */
 typedef struct {
     vec3 pos;
     vec3 acceleration;
@@ -17,6 +23,9 @@ typedef struct {
 
 ////////////////////////    LOCAL    ////////////////////////////
 
+/**
+ * Global instance buffer state.
+ */
 static struct {
     GLuint buffer;
     ParticleInstance *instances;

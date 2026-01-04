@@ -36,7 +36,9 @@ void physics_drawSpheres(void);
 void physics_toggleWander(void);
 
 /**
- * Updates the number of particles in the simulation
+ * Updates the number of particles in the simulation.
+ * Reallocates particle arrays and reinitializes positions.
+ * @param count New number of particles.
  */
 void physics_updateParticleCount(int count);
 
@@ -55,7 +57,6 @@ void physics_setNewLeader(void);
  * @param delta Movement vector
  */
 void physics_moveCenterManual(vec3 delta);
-
 
 /**
  * Updates the particle camera position and direction

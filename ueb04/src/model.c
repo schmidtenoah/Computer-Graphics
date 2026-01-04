@@ -34,7 +34,8 @@ static int g_cubeOrder1[] = {0, 0, 0, 1, 0, 0};
 static int g_cubeOrder2[] = {2, 2, 2, 1, 2, 2};
  
 /**
- * Creates sphere mesh
+ * Creates a sphere mesh
+ * Generates vertices with position, normal and texture coordinates.
  */
 static void model_initSphere(void) {
     int numSlices = SPHERE_NUM_SLICES;
@@ -88,6 +89,9 @@ static void model_initSphere(void) {
     free(indices);
 }
 
+/**
+ * Creates a triangle mesh.
+ */
 static void model_initPoint(void) {
     CGVertex point = {0, 0, 0, 0, 0, 0, 0, 0};
     g_models[MODEL_POINT] = instanced_createMesh(&point, 1, NULL, 0, GL_POINTS);

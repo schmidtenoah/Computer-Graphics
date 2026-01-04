@@ -17,15 +17,20 @@
 
 ////////////////////////    LOCAL    ////////////////////////////
 
+/**
+ * Rendering state data.
+ */
 typedef struct {
     ivec2 screenRes;
     float aspect;
 } RenderingData;
 
+/** Global rendering state */
 static RenderingData g_renderingData;
 
 /**
- * Updates camera view matrix
+ * Updates the camera view matrix based on current camera mode.
+ * @param data Input state containing camera configuration.
  */
 static void updateCamera(InputData *data) {
     if (data->cam.mode == CAM_FREE) {
@@ -49,7 +54,9 @@ static void updateCamera(InputData *data) {
 
 
 /**
- * Draws entire room (floor, ceiling, walls)
+ * Draws the entire room (floor, ceiling, walls)
+ * Uses inside-out culling
+ * @param data Input state containing room size and texture order
  */
 static void drawRoom(InputData *data) {
     debug_pushRenderScope("Room");

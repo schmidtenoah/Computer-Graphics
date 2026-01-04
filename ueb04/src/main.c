@@ -19,6 +19,7 @@
 
 /**
  * Initializes all modules
+ * @param ctx Program context
  */
 static void init(ProgContext ctx) {
     input_init(ctx);
@@ -32,6 +33,7 @@ static void init(ProgContext ctx) {
 
 /**
  * Cleans up all modules
+ * @param ctx Program context
  */
 static void cleanup(ProgContext ctx) {
     gui_cleanup(ctx);
