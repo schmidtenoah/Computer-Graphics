@@ -115,10 +115,11 @@ void shader_setSimpleMVP(bool drawInstanced) {
     shader_setBool(simpleShader, "u_drawInstanced", drawInstanced);
 }
 
-void shader_setSimpleInstanceData(vec3 scale, int leaderIdx) {
+void shader_setSimpleInstanceData(vec3 scale, int leaderIdx, bool hardColor) {
     shader_useShader(simpleShader);
     shader_setVec3(simpleShader, "u_localScale", (vec3*) scale);
     shader_setInt(simpleShader, "u_leaderIdx", leaderIdx);
+    shader_setBool(simpleShader, "u_hardColor", hardColor);
 }
 
 void shader_setParticleVisData(vec3 scale) {

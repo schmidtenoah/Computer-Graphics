@@ -468,27 +468,31 @@ void physics_drawParticles(void) {
 
     vec3 scale;
     ModelType model;
+    bool hardColor;
     switch (data->particles.sphereVis) {
         case SV_SPHERE:
             model = MODEL_SPHERE;
             glm_vec3_copy(VEC3X(0.1f), scale);
+            hardColor = false;
             break;
         case SV_TRIANGLE:
             glDisable(GL_CULL_FACE);
             model = MODEL_TRIANGLE;
             glm_vec3_copy(VEC3(0.1f, 0.05f, 1.0f), scale);
+            hardColor = true;
             break;
         case SV_LINE:
         default:
             model = MODEL_LINE;
             glm_vec3_copy(VEC3(0.2f, 0.2f, 1.0f), scale);
+            hardColor = false;
             break;
     }
 
     int leaderIdx = (data->particles.targetMode == TM_LEADER) ? data->particles.leaderIdx : -1;
 
     shader_setColor(SPHERE_COLOR);
-    shader_setSimpleInstanceData(scale, leaderIdx);
+    shader_setSimpleInstanceData(scale, leaderIdx, hardColor);
     model_drawInstanced(model);
 
     if (data->particles.visVectors) {

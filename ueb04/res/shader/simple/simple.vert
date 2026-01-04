@@ -20,6 +20,7 @@ uniform vec3 u_color;
 
 flat out int isLeader;
 out vec3 vColor;
+out vec3 vBary;
 
 void main() {
     vec3 worldPos = pos;
@@ -31,5 +32,8 @@ void main() {
     }
 
     gl_Position = u_mvpMatrix * vec4(worldPos, 1.0);
-    vColor = (gl_VertexID % 3 == 0) ? u_color : vec3(1.0) - u_color;
+
+    int id = gl_VertexID % 3;
+    vBary = vec3(id == 1 ? 1 : 0, id == 2 ? 1 : 0, id == 0 ? 1 : 0);
+    vColor = (id == 0) ? u_color : vec3(1.0) - u_color;
 }

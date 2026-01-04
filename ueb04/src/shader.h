@@ -48,8 +48,9 @@ void shader_setSimpleMVP(bool drawInstanced);
  * Sets instance-specific data for the simple shader.
  * @param scale Local scale vector for instances.
  * @param leaderIdx Index of the leader particle (-1 if none).
+ * @param hardColor If the color should have a noticable seam.
  */
-void shader_setSimpleInstanceData(vec3 scale, int leaderIdx);
+void shader_setSimpleInstanceData(vec3 scale, int leaderIdx, bool hardColor);
 
 /**
  * Sets visualization data for particle vectors.
